@@ -69,6 +69,11 @@
             <id>ossrh</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/logicomposer/boxable</url>
+        </repository>
     </distributionManagement>
     <build>
         <plugins>
