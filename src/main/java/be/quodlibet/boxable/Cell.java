@@ -23,14 +23,16 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 public class Cell<T extends PDPage> {
 
+	private static final LineStyle DEFAULT_LINESTYLE =  new LineStyle(Color.BLACK, 1);
+
 	private float width;
 	private Float height;
 	private String text;
 
 	private URL url = null;
 
-	private PDFont font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-	private PDFont fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+	private PDFont font = null;
+	private PDFont fontBold = null;
 
 	private float fontSize = 8;
 	private Color fillColor;
@@ -47,10 +49,10 @@ public class Cell<T extends PDPage> {
 	private float bottomPadding = 5f;
 
 	// default border
-	private LineStyle leftBorderStyle = new LineStyle(Color.BLACK, 1);
-	private LineStyle rightBorderStyle = new LineStyle(Color.BLACK, 1);
-	private LineStyle topBorderStyle = new LineStyle(Color.BLACK, 1);
-	private LineStyle bottomBorderStyle = new LineStyle(Color.BLACK, 1);
+	private LineStyle leftBorderStyle;
+	private LineStyle rightBorderStyle;
+	private LineStyle topBorderStyle;
+	private LineStyle bottomBorderStyle;
 
 	private Paragraph paragraph = null;
 	private float lineSpacing = 1;
@@ -120,7 +122,16 @@ public class Cell<T extends PDPage> {
 		if(!FontUtils.getDefaultfonts().isEmpty()){
 			font = FontUtils.getDefaultfonts().get("font");
 			fontBold = FontUtils.getDefaultfonts().get("fontBold");
+		}else {
+			font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+			fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
 		}
+
+		// default border
+		leftBorderStyle = DEFAULT_LINESTYLE;
+		rightBorderStyle = DEFAULT_LINESTYLE;
+		topBorderStyle = DEFAULT_LINESTYLE;
+		bottomBorderStyle = DEFAULT_LINESTYLE;
 		this.text = text == null ? "" : text;
 		this.align = align;
 		this.valign = valign;
