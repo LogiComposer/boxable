@@ -70,6 +70,7 @@ public class TableTest {
 		cell.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD));
 		cell.setFillColor(Color.BLACK);
 		cell.setTextColor(Color.WHITE);
+		cell.setTextUnderline(true);
 
 		table.addHeaderRow(headerRow);
 
@@ -77,9 +78,10 @@ public class TableTest {
 		Row<PDPage> row = table.createRow(15f);
 		cell = row.createCell(30, "Source:");
 		cell.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA));
-
+		cell.setTextUnderline(true);
 		cell = row.createCell(70, "http://www.factsofbelgium.com/");
 		cell.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE));
+		cell.setTextUnderline(true);
 
 		// Create Fact header row
 		Row<PDPage> factHeaderrow = table.createRow(15f);
@@ -116,6 +118,7 @@ public class TableTest {
 					cell = row.createCell((100 / 9f), fact[i]);
 					cell.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE));
 					cell.setFontSize(6);
+					cell.setTextUnderline(true);
 					cell.setUrl(new URL("https://www.google.de"));
 				} else {
 					cell = row.createCell((100 / 9f), fact[i]);

@@ -64,6 +64,8 @@ public class Cell<T extends PDPage> {
 	float horizontalFreeSpace = 0;
 	float verticalFreeSpace = 0;
 
+	boolean isTextUnderline = false;
+
 	private final List<CellContentDrawnListener<T>> contentDrawnListenerList = new ArrayList<CellContentDrawnListener<T>>();
 
 	/**
@@ -785,6 +787,14 @@ public class Cell<T extends PDPage> {
 
 	public void setUrl(URL url) {
 		this.url = url;
+	}
+
+	public void setTextUnderline(boolean textUnderline){
+		this.isTextUnderline = textUnderline;
+	}
+
+	public boolean isTextUnderline(){
+		return this.isTextUnderline;
 	}
 
 

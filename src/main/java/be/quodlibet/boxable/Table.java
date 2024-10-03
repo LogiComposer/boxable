@@ -698,6 +698,14 @@ public abstract class Table<T extends PDPage> {
                                     try {
                                         this.tableContentStream.newLineAt(cursorX, cursorY);
                                         this.tableContentStream.showText(token.getData());
+                                        if (cell.isTextUnderline()) {
+                                            // Draw the underline
+                                            float textWidth = token.getWidth(currentFont) / 1000 * cell.getFontSize();
+                                            this.tableContentStream.moveTo(cursorX, cursorY - 1);
+                                            // Adjust y-coordinate for underline position
+                                            this.tableContentStream.lineTo(cursorX + textWidth, cursorY - 1);
+                                            this.tableContentStream.stroke();
+                                        }
                                         cursorX += token.getWidth(currentFont) / 1000 * cell.getFontSize();
                                     } catch (IOException e) {
                                         e.printStackTrace();
