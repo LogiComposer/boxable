@@ -701,10 +701,13 @@ public abstract class Table<T extends PDPage> {
                                         if (cell.isTextUnderline()) {
                                             // Draw the underline
                                             float textWidth = token.getWidth(currentFont) / 1000 * cell.getFontSize();
-                                            this.tableContentStream.moveTo(cursorX, cursorY - 1);
-                                            // Adjust y-coordinate for underline position
-                                            this.tableContentStream.lineTo(cursorX + textWidth, cursorY - 1);
-                                            this.tableContentStream.stroke();
+                                            // Adjust x & y coordinate for underline position
+                                            LineStyle undelineStyle = new LineStyle(cell.getTextColor(), 1.0f);
+                                            drawLine(cursorX,
+                                                    cursorY - 1,
+                                                    cursorX + textWidth,
+                                                    cursorY - 1,
+                                                    undelineStyle);
                                         }
                                         cursorX += token.getWidth(currentFont) / 1000 * cell.getFontSize();
                                     } catch (IOException e) {

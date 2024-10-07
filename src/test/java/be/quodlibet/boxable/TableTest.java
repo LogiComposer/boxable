@@ -79,6 +79,7 @@ public class TableTest {
 		cell = row.createCell(30, "Source:");
 		cell.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA));
 		cell.setTextUnderline(true);
+		cell.setTextColor(Color.RED);
 		cell = row.createCell(70, "http://www.factsofbelgium.com/");
 		cell.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE));
 		cell.setTextUnderline(true);
