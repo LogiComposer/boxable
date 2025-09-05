@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
+import be.quodlibet.boxable.utils.TokenUtils;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
@@ -426,7 +427,8 @@ public class Paragraph {
 			case TEXT:
 				try {
 					String word = token.getData();
-					float wordWidth = token.getWidth(currentFont);
+					//float wordWidth = token.getWidth(currentFont);
+					float wordWidth = TokenUtils.getOptimizedStringWidth(currentFont,token);
 					if(wordWidth / 1000f * fontSize > width && width > font.getAverageFontWidth() / 1000f * fontSize) {
 						// you need to check if you have already something in your line
 						boolean alreadyTextInLine = false;
@@ -442,11 +444,12 @@ public class Paragraph {
 						StringBuilder restOfTheWord = new StringBuilder();
 						for (int i = 0; i < lastTextToken.length(); i++) {
 							char c = lastTextToken.charAt(i);
-							try {
+							width += FontUtils.getOptimizedStringWidth(currentFont, String.valueOf(c), fontSize);
+							/*try {
 								width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
 							} catch (IOException e) {
 								e.printStackTrace();
-							}
+							}*/
 							if(alreadyTextInLine){
 								if (width < this.width - textInLine.trimmedWidth()) {
 									firstPartOfWord.append(c);

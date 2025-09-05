@@ -3,7 +3,9 @@ package be.quodlibet.boxable.utils;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import be.quodlibet.boxable.text.FontWidthCacheKey;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
@@ -21,6 +23,8 @@ import org.slf4j.LoggerFactory;
 public final class FontUtils {
 
 	private final static Logger logger = LoggerFactory.getLogger(FontUtils.class);
+
+	private static final ConcurrentHashMap<FontWidthCacheKey, Float> fontWidthCache = new ConcurrentHashMap<>();
 
 	private static final class FontMetrics {
 		private final float ascent;
@@ -91,6 +95,17 @@ public final class FontUtils {
 			// turn into runtime exception
 			throw new IllegalStateException("Unable to determine text width", e);
 		}
+	}
+
+	public static float getOptimizedStringWidth(PDFont font, String text, float fontSize) {
+		// Create a cache key to store unique width calculations
+		FontWidthCacheKey cacheKey = new FontWidthCacheKey(font, text, fontSize);
+
+		// Check cache first to avoid redundant calculations
+		return fontWidthCache.computeIfAbsent(cacheKey, key -> {
+			// Calculate width only if not in cache
+			return getStringWidth(key.getFont(), key.getText(), key.getFontSize());
+		});
 	}
 
 	/**
