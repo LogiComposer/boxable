@@ -313,6 +313,60 @@ public final class FontUtils {
 
 	/**
 	 * <p>
+	 * Loads a specific font variant for a supported font family and style.
+	 * This provides a convenient way to load a single font without loading a complete FontSet.
+	 * </p>
+	 * 
+	 * @param document
+	 *            {@link PDDocument} where the font will be loaded
+	 * @param supportedFont
+	 *            The {@link be.quodlibet.boxable.SupportedFont} enum representing the font family
+	 * @param fontStyle
+	 *            The {@link be.quodlibet.boxable.FontStyle} enum representing the desired font style
+	 * @return The loaded {@link PDType0Font} for the specified family and style, or null if loading fails
+	 */
+	public static final PDType0Font loadFont(PDDocument document, be.quodlibet.boxable.SupportedFont supportedFont, be.quodlibet.boxable.FontStyle fontStyle) {
+		if (document == null) {
+			logger.warn("Document cannot be null");
+			return null;
+		}
+		
+		if (supportedFont == null) {
+			logger.warn("SupportedFont cannot be null");
+			return null;
+		}
+		
+		if (fontStyle == null) {
+			logger.warn("FontStyle cannot be null, defaulting to REGULAR");
+			fontStyle = be.quodlibet.boxable.FontStyle.REGULAR;
+		}
+		
+		String fontPath;
+		
+		switch (fontStyle) {
+			case REGULAR:
+				fontPath = supportedFont.getRegularPath();
+				break;
+			case BOLD:
+				fontPath = supportedFont.getBoldPath();
+				break;
+			case ITALIC:
+				fontPath = supportedFont.getItalicPath();
+				break;
+			case BOLD_ITALIC:
+				fontPath = supportedFont.getBoldItalicPath();
+				break;
+			default:
+				logger.warn("Unknown font style: " + fontStyle + ", defaulting to regular");
+				fontPath = supportedFont.getRegularPath();
+				break;
+		}
+		
+		return loadFont(document, fontPath);
+	}
+
+	/**
+	 * <p>
 	 * Creates a FontSet from the current default fonts. If no default fonts are set,
 	 * uses Standard14Fonts (Helvetica variants).
 	 * </p>
