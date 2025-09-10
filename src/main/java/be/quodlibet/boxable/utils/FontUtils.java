@@ -1,6 +1,9 @@
 package be.quodlibet.boxable.utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,6 +47,13 @@ public final class FontUtils {
 	 */
 	private static final Map<String, FontMetrics> fontMetrics = new HashMap<>();
 
+	/**
+	 * <p>
+	 * {@link HashMap} for caching font file data to avoid frequent loading from files.
+	 * The key is the font path and the value is the font file data as byte array.
+	 */
+	private static final Map<String, byte[]> fontDataCache = new HashMap<>();
+
 	private static final Map<String, PDFont> defaultFonts = new HashMap<>();
 
 	private FontUtils() {
@@ -52,7 +62,7 @@ public final class FontUtils {
 	/**
 	 * <p>
 	 * Loads the {@link PDType0Font} to be embedded in the specified
-	 * {@link PDDocument}.
+	 * {@link PDDocument}. Font file data is cached to avoid frequent loading from files.
 	 * </p>
 	 * 
 	 * @param document
@@ -63,11 +73,52 @@ public final class FontUtils {
 	 */
 	public static final PDType0Font loadFont(PDDocument document, String fontPath) {
 		try {
-			return PDType0Font.load(document, FontUtils.class.getClassLoader().getResourceAsStream(fontPath));
+			// Check if font data is already cached
+			byte[] fontData = fontDataCache.get(fontPath);
+			
+			if (fontData == null) {
+				// Load font data from file and cache it
+				try (InputStream fontStream = FontUtils.class.getClassLoader().getResourceAsStream(fontPath)) {
+					if (fontStream == null) {
+						logger.warn("Cannot find font file: " + fontPath);
+						return null;
+					}
+					
+					fontData = readStreamToByteArray(fontStream);
+					fontDataCache.put(fontPath, fontData);
+					logger.debug("Cached font data for: " + fontPath);
+				}
+			} else {
+				logger.debug("Using cached font data for: " + fontPath);
+			}
+			
+			// Create PDType0Font from cached data
+			return PDType0Font.load(document, new ByteArrayInputStream(fontData));
 		} catch (IOException e) {
-			logger.warn("Cannot load given external font", e);
+			logger.warn("Cannot load given external font: " + fontPath, e);
 			return null;
 		}
+	}
+
+	/**
+	 * <p>
+	 * Helper method to read an InputStream into a byte array.
+	 * </p>
+	 * 
+	 * @param inputStream the InputStream to read
+	 * @return byte array containing the stream data
+	 * @throws IOException if reading fails
+	 */
+	private static byte[] readStreamToByteArray(InputStream inputStream) throws IOException {
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+		byte[] data = new byte[8192];
+		int bytesRead;
+		
+		while ((bytesRead = inputStream.read(data, 0, data.length)) != -1) {
+			buffer.write(data, 0, bytesRead);
+		}
+		
+		return buffer.toByteArray();
 	}
 
 	/**
