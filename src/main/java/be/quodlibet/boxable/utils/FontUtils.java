@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.Objects;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
@@ -60,6 +62,14 @@ public final class FontUtils {
 	 */
 	private static final Map<String, byte[]> fontDataCache = new HashMap<>();
 
+	/**
+	 * <p>
+	 * {@link WeakHashMap} for caching PDType0Font objects per document to avoid unnecessary
+	 * PDType0Font object creation. Uses WeakHashMap to allow garbage collection of documents.
+	 * The outer map uses PDDocument as key, inner map uses font path as key.
+	 */
+	private static final Map<PDDocument, Map<String, PDType0Font>> documentFontCache = new WeakHashMap<>();
+
 	private static final Map<String, PDFont> defaultFonts = new HashMap<>();
 
 	private FontUtils() {
@@ -68,7 +78,8 @@ public final class FontUtils {
 	/**
 	 * <p>
 	 * Loads the {@link PDType0Font} to be embedded in the specified
-	 * {@link PDDocument}. Font file data is cached to avoid frequent loading from files.
+	 * {@link PDDocument}. Font file data is cached to avoid frequent loading from files,
+	 * and PDType0Font objects are cached per document to avoid unnecessary object creation.
 	 * </p>
 	 * 
 	 * @param document
@@ -78,6 +89,23 @@ public final class FontUtils {
 	 * @return The read {@link PDType0Font}
 	 */
 	public static final PDType0Font loadFont(PDDocument document, String fontPath) {
+		if (document == null || fontPath == null) {
+			logger.warn("Document and fontPath cannot be null");
+			return null;
+		}
+
+		// Check document-level cache first
+		synchronized (documentFontCache) {
+			Map<String, PDType0Font> docFonts = documentFontCache.get(document);
+			if (docFonts != null) {
+				PDType0Font cachedFont = docFonts.get(fontPath);
+				if (cachedFont != null) {
+					logger.debug("Using cached PDType0Font for document and path: " + fontPath);
+					return cachedFont;
+				}
+			}
+		}
+
 		try {
 			// Check if font data is already cached
 			byte[] fontData = fontDataCache.get(fontPath);
@@ -99,7 +127,18 @@ public final class FontUtils {
 			}
 			
 			// Create PDType0Font from cached data
-			return PDType0Font.load(document, new ByteArrayInputStream(fontData));
+			PDType0Font font = PDType0Font.load(document, new ByteArrayInputStream(fontData));
+			
+			// Cache the PDType0Font object for this document and font path
+			if (font != null) {
+				synchronized (documentFontCache) {
+					Map<String, PDType0Font> docFonts = documentFontCache.computeIfAbsent(document, k -> new HashMap<>());
+					docFonts.put(fontPath, font);
+					logger.debug("Cached PDType0Font for document and path: " + fontPath);
+				}
+			}
+			
+			return font;
 		} catch (IOException e) {
 			logger.warn("Cannot load given external font: " + fontPath, e);
 			return null;
@@ -125,6 +164,57 @@ public final class FontUtils {
 		}
 		
 		return buffer.toByteArray();
+	}
+
+	/**
+	 * <p>
+	 * Clears the font cache for a specific document. This can be useful for explicit cleanup
+	 * when you know a document is no longer needed, though the WeakHashMap should handle
+	 * automatic cleanup when documents are garbage collected.
+	 * </p>
+	 * 
+	 * @param document the PDDocument for which to clear the font cache
+	 */
+	public static void clearDocumentFontCache(PDDocument document) {
+		if (document != null) {
+			synchronized (documentFontCache) {
+				Map<String, PDType0Font> removedFonts = documentFontCache.remove(document);
+				if (removedFonts != null) {
+					logger.debug("Cleared font cache for document, removed " + removedFonts.size() + " cached fonts");
+				}
+			}
+		}
+	}
+
+	/**
+	 * <p>
+	 * Gets the number of documents currently in the font cache. Useful for monitoring and testing.
+	 * </p>
+	 * 
+	 * @return the number of documents with cached fonts
+	 */
+	public static int getDocumentCacheSize() {
+		synchronized (documentFontCache) {
+			return documentFontCache.size();
+		}
+	}
+
+	/**
+	 * <p>
+	 * Gets the number of fonts cached for a specific document. Useful for monitoring and testing.
+	 * </p>
+	 * 
+	 * @param document the PDDocument to check
+	 * @return the number of fonts cached for this document, or 0 if none
+	 */
+	public static int getFontCacheSize(PDDocument document) {
+		if (document == null) {
+			return 0;
+		}
+		synchronized (documentFontCache) {
+			Map<String, PDType0Font> docFonts = documentFontCache.get(document);
+			return docFonts != null ? docFonts.size() : 0;
+		}
 	}
 
 	/**
