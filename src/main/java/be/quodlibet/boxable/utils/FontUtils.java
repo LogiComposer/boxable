@@ -76,25 +76,42 @@ public final class FontUtils {
 	}
 
 	/**
-	 * <p>
-	 * Loads the {@link PDType0Font} to be embedded in the specified
-	 * {@link PDDocument}. Font file data is cached to avoid frequent loading from files,
-	 * and PDType0Font objects are cached per document to avoid unnecessary object creation.
-	 * </p>
-	 * 
-	 * @param document
-	 *            {@link PDDocument} where fonts will be loaded
-	 * @param fontPath
-	 *            font path which will be loaded
-	 * @return The read {@link PDType0Font}
+	 * Loads the {@link PDType0Font} to be embedded in the specified {@link PDDocument}.
+	 * Font file data is cached to avoid frequent loading from files, and PDType0Font objects
+	 * are cached per document to avoid unnecessary object creation.
+	 *
+	 * @param document {@link PDDocument} where fonts will be loaded
+	 * @param fontPath Font path which will be loaded
+	 * @return The loaded {@link PDType0Font}, or null if loading fails
 	 */
-	public static final PDType0Font loadFont(PDDocument document, String fontPath) {
+	public static PDType0Font loadFont(PDDocument document, String fontPath) {
 		if (document == null || fontPath == null) {
 			logger.warn("Document and fontPath cannot be null");
 			return null;
 		}
 
-		// Check document-level cache first
+		// Attempt to retrieve the font from the document-level cache
+		PDType0Font cachedFont = getCachedFont(document, fontPath);
+		if (cachedFont != null) {
+			return cachedFont;
+		}
+
+		try {
+			// Load font data, either from cache or file
+			byte[] fontData = getFontData(fontPath);
+			if (fontData == null) {
+				return null;
+			}
+
+			// Create and cache the PDType0Font
+			return createAndCacheFont(document, fontPath, fontData);
+		} catch (IOException e) {
+			logger.warn("Cannot load given external font: " + fontPath, e);
+			return null;
+		}
+	}
+
+	private static PDType0Font getCachedFont(PDDocument document, String fontPath) {
 		synchronized (documentFontCache) {
 			Map<String, PDType0Font> docFonts = documentFontCache.get(document);
 			if (docFonts != null) {
@@ -105,44 +122,37 @@ public final class FontUtils {
 				}
 			}
 		}
+		return null;
+	}
 
-		try {
-			// Check if font data is already cached
-			byte[] fontData = fontDataCache.get(fontPath);
-			
-			if (fontData == null) {
-				// Load font data from file and cache it
-				try (InputStream fontStream = FontUtils.class.getClassLoader().getResourceAsStream(fontPath)) {
-					if (fontStream == null) {
-						logger.warn("Cannot find font file: " + fontPath);
-						return null;
-					}
-					
-					fontData = readStreamToByteArray(fontStream);
-					fontDataCache.put(fontPath, fontData);
-					logger.debug("Cached font data for: " + fontPath);
+	private static byte[] getFontData(String fontPath) throws IOException {
+		byte[] fontData = fontDataCache.get(fontPath);
+		if (fontData == null) {
+			try (InputStream fontStream = FontUtils.class.getClassLoader().getResourceAsStream(fontPath)) {
+				if (fontStream == null) {
+					logger.warn("Cannot find font file: " + fontPath);
+					return null;
 				}
-			} else {
-				logger.debug("Using cached font data for: " + fontPath);
+				fontData = readStreamToByteArray(fontStream);
+				fontDataCache.put(fontPath, fontData);
+				logger.debug("Cached font data for: " + fontPath);
 			}
-			
-			// Create PDType0Font from cached data
-			PDType0Font font = PDType0Font.load(document, new ByteArrayInputStream(fontData));
-			
-			// Cache the PDType0Font object for this document and font path
-			if (font != null) {
-				synchronized (documentFontCache) {
-					Map<String, PDType0Font> docFonts = documentFontCache.computeIfAbsent(document, k -> new HashMap<>());
-					docFonts.put(fontPath, font);
-					logger.debug("Cached PDType0Font for document and path: " + fontPath);
-				}
-			}
-			
-			return font;
-		} catch (IOException e) {
-			logger.warn("Cannot load given external font: " + fontPath, e);
-			return null;
+		} else {
+			logger.debug("Using cached font data for: " + fontPath);
 		}
+		return fontData;
+	}
+
+	private static PDType0Font createAndCacheFont(PDDocument document, String fontPath, byte[] fontData) throws IOException {
+		PDType0Font font = PDType0Font.load(document, new ByteArrayInputStream(fontData));
+		if (font != null) {
+			synchronized (documentFontCache) {
+				Map<String, PDType0Font> docFonts = documentFontCache.computeIfAbsent(document, k -> new HashMap<>());
+				docFonts.put(fontPath, font);
+				logger.debug("Cached PDType0Font for document and path: " + fontPath);
+			}
+		}
+		return font;
 	}
 
 	/**
@@ -330,27 +340,6 @@ public final class FontUtils {
 		return defaultFonts;
 	}
 
-	public static void setSansFontsAsDefault(PDDocument document) {
-		defaultFonts.put("font", loadFont(document, "fonts/FreeSans.ttf"));
-		defaultFonts.put("fontBold", loadFont(document, "fonts/FreeSansBold.ttf"));
-		defaultFonts.put("fontItalic", loadFont(document, "fonts/FreeSansOblique.ttf"));
-		defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/FreeSansBoldOblique.ttf"));
-	}
-
-	/**
-	 * <p>
-	 * Sets Source Sans 3 fonts as the default fonts for the document.
-	 * </p>
-	 * 
-	 * @param document
-	 *            {@link PDDocument} where Source Sans 3 fonts will be set as default
-	 */
-	public static void setSourceSans3FontsAsDefault(PDDocument document) {
-		defaultFonts.put("font", loadFont(document, "fonts/SourceSans3-Regular.ttf"));
-		defaultFonts.put("fontBold", loadFont(document, "fonts/SourceSans3-Bold.ttf"));
-		defaultFonts.put("fontItalic", loadFont(document, "fonts/SourceSans3-It.ttf"));
-		defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/SourceSans3-BoldIt.ttf"));
-	}
 
 	/**
 	 * <p>
