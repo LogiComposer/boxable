@@ -1,6 +1,7 @@
 package be.quodlibet.boxable.utils;
 
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,6 +37,8 @@ public final class FontUtils {
 		}
 	}
 
+	private static final Map<String, byte[]> fontFileCache = new ConcurrentHashMap<>();
+
 	/**
 	 * <p>
 	 * {@link HashMap} for caching {@link FontMetrics} for designated
@@ -61,14 +64,19 @@ public final class FontUtils {
 	 *            font path which will be loaded
 	 * @return The read {@link PDType0Font}
 	 */
-	public static final PDType0Font loadFont(PDDocument document, String fontPath) {
-		try {
-			return PDType0Font.load(document, FontUtils.class.getClassLoader().getResourceAsStream(fontPath));
-		} catch (IOException e) {
-			logger.warn("Cannot load given external font", e);
-			return null;
-		}
-	}
+	public static PDFont loadFont(PDDocument document, String fontFilePath) throws IOException {
+    byte[] fontBytes = fontFileCache.get(fontFilePath);
+    if (fontBytes == null) {
+        try (InputStream is = FontUtils.class.getClassLoader().getResourceAsStream(fontFilePath)) {
+            if (is == null) {
+                throw new FileNotFoundException("Font file not found: " + fontFilePath);
+            }
+            fontBytes = is.readAllBytes();
+            fontFileCache.put(fontFilePath, fontBytes);
+        }
+    }
+    return PDType0Font.load(document, new ByteArrayInputStream(fontBytes));
+}
 
 	/**
 	 * <p>
