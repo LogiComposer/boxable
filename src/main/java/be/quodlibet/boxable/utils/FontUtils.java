@@ -1,6 +1,11 @@
 package be.quodlibet.boxable.utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,6 +41,8 @@ public final class FontUtils {
 		}
 	}
 
+	private static final Map<String, byte[]> fontFileCache = new ConcurrentHashMap<>();
+
 	/**
 	 * <p>
 	 * {@link HashMap} for caching {@link FontMetrics} for designated
@@ -57,16 +64,32 @@ public final class FontUtils {
 	 * 
 	 * @param document
 	 *            {@link PDDocument} where fonts will be loaded
-	 * @param fontPath
+	 * @param fontFilePath
 	 *            font path which will be loaded
 	 * @return The read {@link PDType0Font}
 	 */
-	public static final PDType0Font loadFont(PDDocument document, String fontPath) {
-		try {
-			return PDType0Font.load(document, FontUtils.class.getClassLoader().getResourceAsStream(fontPath));
-		} catch (IOException e) {
-			logger.warn("Cannot load given external font", e);
-			return null;
+	public static PDType0Font loadFont(PDDocument document, String fontFilePath) throws IOException {
+		byte[] fontBytes = fontFileCache.computeIfAbsent(fontFilePath, path -> {
+			try (InputStream is = FontUtils.class.getClassLoader().getResourceAsStream(path)) {
+				if (is == null) {
+					throw new RuntimeException(new FileAlreadyExistsException("Font file not found: " + path));
+				}
+				return readInputStreamToByteArray(is);
+			} catch (IOException e) {
+				throw new RuntimeException("Failed to load font file: " + path, e);
+			}
+		});
+		return PDType0Font.load(document, new ByteArrayInputStream(fontBytes));
+	}
+
+	private static byte[] readInputStreamToByteArray(InputStream is) throws IOException {
+		try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+			byte[] temp = new byte[1024];
+			int bytesRead;
+			while ((bytesRead = is.read(temp)) != -1) {
+				buffer.write(temp, 0, bytesRead);
+			}
+			return buffer.toByteArray();
 		}
 	}
 
@@ -184,9 +207,35 @@ public final class FontUtils {
 	}
 
 	public static void setSansFontsAsDefault(PDDocument document) {
-		defaultFonts.put("font", loadFont(document, "fonts/FreeSans.ttf"));
-		defaultFonts.put("fontBold", loadFont(document, "fonts/FreeSansBold.ttf"));
-		defaultFonts.put("fontItalic", loadFont(document, "fonts/FreeSansOblique.ttf"));
-		defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/FreeSansBoldOblique.ttf"));
+		try {
+			defaultFonts.put("font", loadFont(document, "fonts/FreeSans.ttf"));
+			defaultFonts.put("fontBold", loadFont(document, "fonts/FreeSansBold.ttf"));
+			defaultFonts.put("fontItalic", loadFont(document, "fonts/FreeSansOblique.ttf"));
+			defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/FreeSansBoldOblique.ttf"));
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to load SansFonts: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * <p>
+	 * Sets Google Source Sans 3 fonts as the default fonts for the Boxable library.
+	 * This method loads and caches all four variants: Regular, Bold, Italic, and Bold Italic.
+	 * The fonts are loaded only once and reused for all subsequent PDF generation.
+	 * </p>
+	 * 
+	 * @param document
+	 *            {@link PDDocument} where fonts will be loaded and embedded
+	 */
+	public static void setSourceSans3FontsAsDefault(PDDocument document) {
+		try {
+			defaultFonts.put("font", loadFont(document, "fonts/SourceSans3-Regular.ttf"));
+			defaultFonts.put("fontBold", loadFont(document, "fonts/SourceSans3-Bold.ttf"));
+			defaultFonts.put("fontItalic", loadFont(document, "fonts/SourceSans3-Italic.ttf"));
+			defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/SourceSans3-BoldItalic.ttf"));
+		}
+		catch (IOException e) {
+			throw new RuntimeException("Failed to load SourceSans3Fonts: " + e.getMessage(), e);
+		}
 	}
 }
