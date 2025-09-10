@@ -408,4 +408,8 @@ public final class FontUtils {
 			return new FontSet("Default", regular, bold, italic, boldItalic);
 		}
 	}
+
+	public static void clearDefaultFonts() {
+		defaultFonts.clear();
+	}
 }

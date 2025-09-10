@@ -7,7 +7,9 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import be.quodlibet.boxable.utils.FontUtils;
@@ -17,6 +19,15 @@ import be.quodlibet.boxable.utils.FontUtils;
  */
 public class SourceSans3FontTest {
 
+    @Before
+    public void beforeTest() {
+        FontUtils.clearDefaultFonts();
+    }
+
+    @After
+    public void afterTest() {
+        FontUtils.clearDefaultFonts();
+    }
     /**
      * Test that Source Sans 3 fonts can be loaded and used
      */

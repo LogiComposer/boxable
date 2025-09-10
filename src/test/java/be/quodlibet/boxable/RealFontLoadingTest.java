@@ -10,6 +10,8 @@ import java.io.IOException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import be.quodlibet.boxable.utils.FontUtils;
@@ -19,6 +21,15 @@ import static org.junit.Assert.assertEquals;
 
 public class RealFontLoadingTest {
 
+    @Before
+    public void beforeTest() {
+        FontUtils.clearDefaultFonts();
+    }
+
+    @After
+    public void afterTest() {
+        FontUtils.clearDefaultFonts();
+    }
     /**
      * Test loading real TTF fonts using FontUtils.loadFontSet method
      */
