@@ -51,7 +51,7 @@ public final class FontUtils {
 	 */
 	private static final Map<String, FontMetrics> fontMetrics = new HashMap<>();
 
-	private static final Map<String, PDFont> defaultFonts = new HashMap<>();
+	private static final Map<String, PDFont> defaultFonts = new ConcurrentHashMap<>();
 
 	private FontUtils() {
 	}
@@ -82,6 +82,25 @@ public final class FontUtils {
 		return PDType0Font.load(document, new ByteArrayInputStream(fontBytes));
 	}
 
+	/**
+	 * <p>
+	 * Reads a font file from resources and returns it as a byte array.
+	 * This is a utility method used by FontManager for efficient font loading.
+	 * </p>
+	 * 
+	 * @param fontFilePath Path to the font file in resources
+	 * @return Font file content as byte array
+	 * @throws IOException if font file cannot be read
+	 */
+	public static byte[] readFontFileToByteArray(String fontFilePath) throws IOException {
+		try (InputStream is = FontUtils.class.getClassLoader().getResourceAsStream(fontFilePath)) {
+			if (is == null) {
+				throw new IOException("Font file not found: " + fontFilePath);
+			}
+			return readInputStreamToByteArray(is);
+		}
+	}
+	
 	private static byte[] readInputStreamToByteArray(InputStream is) throws IOException {
 		try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
 			byte[] temp = new byte[1024];
@@ -224,18 +243,36 @@ public final class FontUtils {
 	 * The fonts are loaded only once and reused for all subsequent PDF generation.
 	 * </p>
 	 * 
+	 * <p>
+	 * This method now uses FontManager for efficient, thread-safe font management.
+	 * Font data is cached after first load to avoid file system reads.
+	 * </p>
+	 * 
 	 * @param document
 	 *            {@link PDDocument} where fonts will be loaded and embedded
 	 */
 	public static void setSourceSans3FontsAsDefault(PDDocument document) {
 		try {
-			defaultFonts.put("font", loadFont(document, "fonts/SourceSans3-Regular.ttf"));
-			defaultFonts.put("fontBold", loadFont(document, "fonts/SourceSans3-Bold.ttf"));
-			defaultFonts.put("fontItalic", loadFont(document, "fonts/SourceSans3-Italic.ttf"));
-			defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/SourceSans3-BoldItalic.ttf"));
+			FontManager fontManager = FontManager.getInstance();
+			Map<String, PDFont> sourceSans3Fonts = fontManager.loadSourceSans3Fonts(document);
+			
+			// Update the default fonts map with thread-safe operations
+			defaultFonts.putAll(sourceSans3Fonts);
 		}
 		catch (IOException e) {
 			throw new RuntimeException("Failed to load SourceSans3Fonts: " + e.getMessage(), e);
 		}
+	}
+	
+	/**
+	 * <p>
+	 * Clears cached font instances for a specific document to prevent memory leaks.
+	 * This should be called when a PDDocument is closed.
+	 * </p>
+	 * 
+	 * @param document The PDDocument whose cached fonts should be cleared
+	 */
+	public static void clearDocumentFonts(PDDocument document) {
+		FontManager.getInstance().clearDocumentFonts(document);
 	}
 }
