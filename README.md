@@ -182,124 +182,6 @@ BaseTable(float yStart, float yStartNewPage, float bottomMargin,
 - **`drawLines`**: Whether to draw cell borders (true/false)
 - **`drawContent`**: Whether to draw cell content (true/false, useful for testing layouts)
 
-
-## Best Practices
-
-### 1. Document Structure
-```java
-// Always use try-with-resources for proper cleanup
-try (PDDocument document = new PDDocument()) {
-    // Create your tables
-    table.draw();
-    document.save("output.pdf");
-} catch (IOException e) {
-    logger.error("Error creating PDF", e);
-}
-```
-
-### 2. Memory Management
-```java
-// For large documents, save periodically and recreate document
-if (pageCount > 100) {
-    document.save("part-" + partNumber + ".pdf");
-    document.close();
-    document = new PDDocument(); // Start fresh
-}
-```
-
-### 3. Error Handling
-```java
-try {
-    table.draw();
-} catch (IOException e) {
-    // Handle PDF generation errors
-    logger.error("Failed to generate table", e);
-} catch (IllegalArgumentException e) {
-    // Handle invalid table parameters
-    logger.error("Invalid table configuration", e);
-}
-```
-
-### 4. Responsive Design
-```java
-// Calculate dynamic column widths
-float pageWidth = page.getMediaBox().getWidth() - (2 * margin);
-float[] columnWidths = {pageWidth * 0.3f, pageWidth * 0.4f, pageWidth * 0.3f};
-
-for (int i = 0; i < columnWidths.length; i++) {
-    cell = row.createCell(columnWidths[i], data[i]);
-}
-```
-
-## Troubleshooting
-
-### Common Issues and Solutions
-
-#### Issue: Table doesn't fit on page
-```java
-// Solution: Check your margins and table width
-float availableWidth = page.getMediaBox().getWidth() - (2 * margin);
-float tableWidth = availableWidth; // Use full available width
-
-// Or reduce column widths proportionally
-float totalWidth = 0;
-for (float width : columnWidths) totalWidth += width;
-if (totalWidth > availableWidth) {
-    float scale = availableWidth / totalWidth;
-    for (int i = 0; i < columnWidths.length; i++) {
-        columnWidths[i] *= scale;
-    }
-}
-```
-
-#### Issue: Text is cut off in cells
-```java
-// Solution: Increase row height or enable text wrapping
-Row<PDPage> row = table.createRow(25f); // Increase height
-
-// Or use automatic height calculation
-cell.setTextWrap(true); // If available in your version
-```
-
-#### Issue: Memory issues with large tables
-```java
-// Solution: Process data in chunks
-int batchSize = 1000;
-for (int start = 0; start < totalRows; start += batchSize) {
-    int end = Math.min(start + batchSize, totalRows);
-    List<String[]> batch = data.subList(start, end);
-    // Process batch
-    
-    if (start > 0 && start % (batchSize * 10) == 0) {
-        // Occasional cleanup
-        System.gc();
-    }
-}
-```
-
-#### Issue: Fonts not displaying correctly
-```java
-// Solution: Use embedded fonts for special characters
-PDFont font = PDType0Font.load(document, 
-    getClass().getResourceAsStream("/fonts/NotoSans-Regular.ttf"));
-cell.setFont(font);
-```
-
-#### Issue: Images not scaling properly
-```java
-// Solution: Control image scaling
-Image image = ImageUtils.readImage(imageFile);
-image.scale(0.5f); // Scale to 50%
-
-// Or set specific dimensions
-float maxWidth = 100;
-float maxHeight = 80;
-if (image.getWidth() > maxWidth || image.getHeight() > maxHeight) {
-    float scale = Math.min(maxWidth / image.getWidth(), maxHeight / image.getHeight());
-    image.scale(scale);
-}
-```
-
 ### Debug Mode
 
 Enable debug information for troubleshooting:
@@ -341,9 +223,6 @@ mvn install
 - Maven 3.6 or higher
 - Apache PDFBox 3.0.2+
 
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ### Development Setup
 1. Fork the repository
@@ -352,16 +231,6 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 4. Ensure all tests pass: `mvn test`
 5. Submit a pull request
 
-### Reporting Issues
-Please use the [GitHub Issues](https://github.com/LogiComposer/boxable/issues) page to report bugs or request features.
-
-## Examples Repository
-
-For more comprehensive examples, visit: https://github.com/dhorions/boxable/wiki
-
-Sample outputs:
-- [CSV Example Portrait](https://s3.amazonaws.com/misc.quodlibet.be/Boxable/CSVexamplePortrait.pdf)
-- [List Example Landscape](https://s3.amazonaws.com/misc.quodlibet.be/Boxable/ListExampleLandscape.pdf)
 
 ## API Reference
 
@@ -410,12 +279,10 @@ Special thanks to these awesome contributors who have helped make Boxable better
 - [@dobluth](https://github.com/dobluth) - Image handling
 - [@schmitzhermes](https://github.com/schmitzhermes) - Multi-page support
 
-Want to contribute? Check our [Contributing Guidelines](CONTRIBUTING.md)!
 
 ---
 
 ## License
-
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
