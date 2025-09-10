@@ -103,6 +103,39 @@ public class Paragraph {
 		this.lineSpacing = lineSpacing;
 	}
 
+	/**
+	 * <p>
+	 * Constructor with FontSet support for better font management.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param fontSet The FontSet containing all font variants
+	 * @param fontStyle The style to use from the FontSet
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 * @param color The text color
+	 * @param textType The text type (underline, etc.)
+	 * @param wrappingFunction The wrapping function
+	 * @param lineSpacing The line spacing
+	 */
+	public Paragraph(String text, FontSet fontSet, FontStyle fontStyle, float fontSize, float width, 
+			final HorizontalAlignment align, final Color color, final TextType textType, 
+			WrappingFunction wrappingFunction, float lineSpacing) {
+		this.color = color;
+		this.text = text;
+		this.font = fontSet.getFont(fontStyle);
+		this.fontBold = fontSet.getBold();
+		this.fontItalic = fontSet.getItalic();
+		this.fontBoldItalic = fontSet.getBoldItalic();
+		this.fontSize = fontSize;
+		this.width = width;
+		this.textType = textType;
+		this.setAlign(align);
+		this.wrappingFunction = wrappingFunction;
+		this.lineSpacing = lineSpacing;
+	}
+
 	public List<String> getLines() {
 		// memoize this function because it is very expensive
 		if (lines != null) {
@@ -756,6 +789,43 @@ public class Paragraph {
 
 	public void setLineSpacing(float lineSpacing) {
 		this.lineSpacing = lineSpacing;
+	}
+
+	/**
+	 * Sets the font style for this paragraph if it was created with a FontSet.
+	 * This method allows changing font style (e.g., from REGULAR to BOLD) after creation.
+	 * 
+	 * @param fontStyle The font style to apply
+	 */
+	public void setFontStyle(FontStyle fontStyle) {
+		if (fontStyle == null) {
+			return;
+		}
+		
+		// Set the primary font based on the style
+		switch (fontStyle) {
+			case REGULAR:
+				// Keep current font as regular
+				break;
+			case BOLD:
+				if (fontBold != null) {
+					invalidateLineWrapping();
+					this.font = fontBold;
+				}
+				break;
+			case ITALIC:
+				if (fontItalic != null) {
+					invalidateLineWrapping();
+					this.font = fontItalic;
+				}
+				break;
+			case BOLD_ITALIC:
+				if (fontBoldItalic != null) {
+					invalidateLineWrapping();
+					this.font = fontBoldItalic;
+				}
+				break;
+		}
 	}
 
 }
