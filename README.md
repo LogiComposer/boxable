@@ -1,9 +1,5 @@
 # Boxable - Java PDF Table Library
 
-[![Join the chat at https://gitter.im/dhorions/boxable](https://badges.gitter.im/dhorions/boxable.svg)](https://gitter.im/dhorions/boxable?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/dhorions/boxable.svg?branch=master)](https://travis-ci.org/dhorions/boxable)
-[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5UL3NVLA852MN&source=url)
-
 Boxable is a powerful and flexible Java library for creating professional tables in PDF documents. Built on top of [Apache PDFBox](https://pdfbox.apache.org/), it provides an intuitive API for developers to generate complex tables with rich formatting, styling, and content options.
 
 ## Key Benefits
@@ -59,8 +55,6 @@ implementation 'com.logi.composer:boxable:1.7.7'
 ```scala
 libraryDependencies += "com.logi.composer" % "boxable" % "1.7.7"
 ```
-
-For other build systems, check the [Maven Central Repository](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22boxable%22).
 
 ### Required Dependencies
 
@@ -811,7 +805,6 @@ Want to contribute? Check our [Contributing Guidelines](CONTRIBUTING.md)!
 
 ## License
 
-Copyright [2024](Quodlibet.be)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
