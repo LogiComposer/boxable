@@ -292,6 +292,27 @@ public final class FontUtils {
 
 	/**
 	 * <p>
+	 * Loads a complete font set using a supported font family enum.
+	 * This provides a convenient way to load fonts without specifying individual file paths.
+	 * </p>
+	 * 
+	 * @param document
+	 *            {@link PDDocument} where fonts will be loaded
+	 * @param supportedFont
+	 *            The {@link be.quodlibet.boxable.SupportedFont} enum representing the font family to load
+	 * @return A new {@link be.quodlibet.boxable.FontSet} containing all font variants, or null if loading fails
+	 */
+	public static final be.quodlibet.boxable.FontSet loadFontSet(PDDocument document, be.quodlibet.boxable.SupportedFont supportedFont) {
+		return loadFontSet(document, 
+						   supportedFont.getFamilyName(),
+						   supportedFont.getRegularPath(),
+						   supportedFont.getBoldPath(),
+						   supportedFont.getItalicPath(),
+						   supportedFont.getBoldItalicPath());
+	}
+
+	/**
+	 * <p>
 	 * Creates a FontSet from the current default fonts. If no default fonts are set,
 	 * uses Standard14Fonts (Helvetica variants).
 	 * </p>
