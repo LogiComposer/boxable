@@ -104,6 +104,9 @@ public class FontSetTest {
         doc.addPage(page);
         float yStartNewPage = page.getMediaBox().getHeight() - (2 * margin);
 
+        // Clear any existing default fonts to ensure clean state
+        FontUtils.getDefaultfonts().clear();
+
         // Initialize table without setting custom font
         float tableWidth = page.getMediaBox().getWidth() - (2 * margin);
         boolean drawContent = true;
@@ -112,9 +115,9 @@ public class FontSetTest {
         BaseTable table = new BaseTable(yStart, yStartNewPage, bottomMargin, tableWidth, margin, doc, page, true,
                 drawContent);
 
-        // Verify that default FontSet is created
+        // Verify that default FontSet is created (should be Helvetica since we cleared default fonts)
         assertNotNull("Default FontSet should not be null", table.getFontSet());
-        assertEquals("Default FontSet should use Helvetica", "Helvetica", table.getFontSet().getFamilyName());
+        assertEquals("FontSet family should be Helvetica when no defaults are set", "Helvetica", table.getFontSet().getFamilyName());
 
         // Create Header row
         Row<PDPage> headerRow = table.createRow(20f);
