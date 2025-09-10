@@ -65,18 +65,18 @@ public final class FontUtils {
 	 * @return The read {@link PDType0Font}
 	 */
 	public static PDFont loadFont(PDDocument document, String fontFilePath) throws IOException {
-    byte[] fontBytes = fontFileCache.get(fontFilePath);
-    if (fontBytes == null) {
-        try (InputStream is = FontUtils.class.getClassLoader().getResourceAsStream(fontFilePath)) {
-            if (is == null) {
-                throw new FileNotFoundException("Font file not found: " + fontFilePath);
-            }
-            fontBytes = is.readAllBytes();
-            fontFileCache.put(fontFilePath, fontBytes);
-        }
-    }
-    return PDType0Font.load(document, new ByteArrayInputStream(fontBytes));
-}
+	    byte[] fontBytes = fontFileCache.get(fontFilePath);
+	    if (fontBytes == null) {
+	        try (InputStream is = FontUtils.class.getClassLoader().getResourceAsStream(fontFilePath)) {
+	            if (is == null) {
+	                throw new FileNotFoundException("Font file not found: " + fontFilePath);
+	            }
+	            fontBytes = is.readAllBytes();
+	            fontFileCache.put(fontFilePath, fontBytes);
+	        }
+	    }
+	    return PDType0Font.load(document, new ByteArrayInputStream(fontBytes));
+	}
 
 	/**
 	 * <p>
