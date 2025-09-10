@@ -243,6 +243,21 @@ public final class FontUtils {
 
 	/**
 	 * <p>
+	 * Sets Source Sans 3 fonts as the default fonts for the document.
+	 * </p>
+	 * 
+	 * @param document
+	 *            {@link PDDocument} where Source Sans 3 fonts will be set as default
+	 */
+	public static void setSourceSans3FontsAsDefault(PDDocument document) {
+		defaultFonts.put("font", loadFont(document, "fonts/SourceSans3-Regular.ttf"));
+		defaultFonts.put("fontBold", loadFont(document, "fonts/SourceSans3-Bold.ttf"));
+		defaultFonts.put("fontItalic", loadFont(document, "fonts/SourceSans3-It.ttf"));
+		defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/SourceSans3-BoldIt.ttf"));
+	}
+
+	/**
+	 * <p>
 	 * Loads a complete font set (regular, bold, italic, bold-italic) from the specified paths.
 	 * </p>
 	 * 
