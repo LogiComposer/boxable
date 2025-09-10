@@ -285,4 +285,13 @@ public class Row<T extends PDPage> {
 	public void setLineSpacing(float lineSpacing) {
 		this.lineSpacing = lineSpacing;
 	}
+
+	/**
+	 * Gets the table that this row belongs to.
+	 * 
+	 * @return The table containing this row
+	 */
+	public Table<T> getTable() {
+		return table;
+	}
 }

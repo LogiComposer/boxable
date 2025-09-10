@@ -61,6 +61,8 @@ public abstract class Table<T extends PDPage> {
     private final float pageBottomMargin;
 
     private boolean drawDebug;
+    
+    protected FontSet fontSet;
 
     /**
      * @deprecated Use one of the constructors that pass a {@link PageProvider}
@@ -987,6 +989,28 @@ public abstract class Table<T extends PDPage> {
 
     public void removeAllBorders(boolean removeAllBorders) {
         this.removeAllBorders = removeAllBorders;
+    }
+
+    /**
+     * Gets the current font set for this table.
+     * 
+     * @return The FontSet being used by this table
+     */
+    public FontSet getFontSet() {
+        return fontSet;
+    }
+
+    /**
+     * Sets the font set for this table. All rows, cells, and paragraphs
+     * created after this call will use the specified font set.
+     * 
+     * @param fontSet The FontSet to use for this table
+     */
+    public void setFontSet(FontSet fontSet) {
+        if (fontSet == null) {
+            throw new IllegalArgumentException("FontSet cannot be null");
+        }
+        this.fontSet = fontSet;
     }
 
 }

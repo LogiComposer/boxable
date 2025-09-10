@@ -324,26 +324,58 @@ public class Cell<T extends PDPage> {
 	 */
 	public Paragraph getParagraph() {
 		if (paragraph == null) {
-			// if it is header cell then use font bold
-			if (isHeaderCell) {
+			// Check if table has a FontSet for better font management
+			if (row.getTable().getFontSet() != null) {
+				FontSet fontSet = row.getTable().getFontSet();
+				FontStyle fontStyle = isHeaderCell ? FontStyle.BOLD : FontStyle.REGULAR;
+				
 				if (isTextRotated()) {
-					paragraph = new Paragraph(text, fontBold, fontSize, getInnerHeight(), align, textColor, null,
+					paragraph = new Paragraph(text, fontSet, fontStyle, fontSize, getInnerHeight(), align, textColor, null,
 							wrappingFunction, lineSpacing);
 				} else {
-					paragraph = new Paragraph(text, fontBold, fontSize, getInnerWidth(), align, textColor, null,
+					paragraph = new Paragraph(text, fontSet, fontStyle, fontSize, getInnerWidth(), align, textColor, null,
 							wrappingFunction, lineSpacing);
 				}
 			} else {
+				// Fallback to traditional font handling for backward compatibility
+				PDFont paragraphFont = getEffectiveFont();
+				
 				if (isTextRotated()) {
-					paragraph = new Paragraph(text, font, fontSize, getInnerHeight(), align, textColor, null,
+					paragraph = new Paragraph(text, paragraphFont, fontSize, getInnerHeight(), align, textColor, null,
 							wrappingFunction, lineSpacing);
 				} else {
-					paragraph = new Paragraph(text, font, fontSize, getInnerWidth(), align, textColor, null,
+					paragraph = new Paragraph(text, paragraphFont, fontSize, getInnerWidth(), align, textColor, null,
 							wrappingFunction, lineSpacing);
 				}
 			}
 		}
 		return paragraph;
+	}
+
+	/**
+	 * <p>
+	 * Gets the effective font for this cell, either from the table's FontSet or cell's font property.
+	 * </p>
+	 * 
+	 * @return The effective font to use for this cell
+	 */
+	private PDFont getEffectiveFont() {
+		// Check if table has a FontSet
+		if (row.getTable().getFontSet() != null) {
+			FontSet fontSet = row.getTable().getFontSet();
+			if (isHeaderCell) {
+				return fontSet.getBold();
+			} else {
+				return fontSet.getRegular();
+			}
+		} else {
+			// Fallback to cell's font properties
+			if (isHeaderCell) {
+				return fontBold != null ? fontBold : font;
+			} else {
+				return font;
+			}
+		}
 	}
 
 	public float getExtraWidth() {
