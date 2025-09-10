@@ -10,8 +10,14 @@ import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import be.quodlibet.boxable.FontSet;
+import be.quodlibet.boxable.FontStyle;
+import be.quodlibet.boxable.SupportedFont;
 
 /**
  * <p>
@@ -273,9 +279,9 @@ public final class FontUtils {
 	 *            Path to the italic font file
 	 * @param boldItalicPath
 	 *            Path to the bold-italic font file
-	 * @return A new {@link be.quodlibet.boxable.FontSet} containing all font variants
+	 * @return A new {@link FontSet} containing all font variants
 	 */
-	public static final be.quodlibet.boxable.FontSet loadFontSet(PDDocument document, String familyName, 
+	public static final FontSet loadFontSet(PDDocument document, String familyName, 
 			String regularPath, String boldPath, String italicPath, String boldItalicPath) {
 		PDType0Font regular = loadFont(document, regularPath);
 		PDType0Font bold = loadFont(document, boldPath);
@@ -287,7 +293,7 @@ public final class FontUtils {
 			return null;
 		}
 		
-		return new be.quodlibet.boxable.FontSet(familyName, regular, bold, italic, boldItalic);
+		return new FontSet(familyName, regular, bold, italic, boldItalic);
 	}
 
 	/**
@@ -299,10 +305,10 @@ public final class FontUtils {
 	 * @param document
 	 *            {@link PDDocument} where fonts will be loaded
 	 * @param supportedFont
-	 *            The {@link be.quodlibet.boxable.SupportedFont} enum representing the font family to load
-	 * @return A new {@link be.quodlibet.boxable.FontSet} containing all font variants, or null if loading fails
+	 *            The {@link SupportedFont} enum representing the font family to load
+	 * @return A new {@link FontSet} containing all font variants, or null if loading fails
 	 */
-	public static final be.quodlibet.boxable.FontSet loadFontSet(PDDocument document, be.quodlibet.boxable.SupportedFont supportedFont) {
+	public static final FontSet loadFontSet(PDDocument document, SupportedFont supportedFont) {
 		return loadFontSet(document, 
 						   supportedFont.getFamilyName(),
 						   supportedFont.getRegularPath(),
@@ -320,12 +326,12 @@ public final class FontUtils {
 	 * @param document
 	 *            {@link PDDocument} where the font will be loaded
 	 * @param supportedFont
-	 *            The {@link be.quodlibet.boxable.SupportedFont} enum representing the font family
+	 *            The {@link SupportedFont} enum representing the font family
 	 * @param fontStyle
-	 *            The {@link be.quodlibet.boxable.FontStyle} enum representing the desired font style
+	 *            The {@link FontStyle} enum representing the desired font style
 	 * @return The loaded {@link PDType0Font} for the specified family and style, or null if loading fails
 	 */
-	public static final PDType0Font loadFont(PDDocument document, be.quodlibet.boxable.SupportedFont supportedFont, be.quodlibet.boxable.FontStyle fontStyle) {
+	public static final PDType0Font loadFont(PDDocument document, SupportedFont supportedFont, FontStyle fontStyle) {
 		if (document == null) {
 			logger.warn("Document cannot be null");
 			return null;
@@ -338,7 +344,7 @@ public final class FontUtils {
 		
 		if (fontStyle == null) {
 			logger.warn("FontStyle cannot be null, defaulting to REGULAR");
-			fontStyle = be.quodlibet.boxable.FontStyle.REGULAR;
+			fontStyle = FontStyle.REGULAR;
 		}
 		
 		String fontPath;
@@ -371,17 +377,17 @@ public final class FontUtils {
 	 * uses Standard14Fonts (Helvetica variants).
 	 * </p>
 	 * 
-	 * @return A {@link be.quodlibet.boxable.FontSet} containing the default font variants
+	 * @return A {@link FontSet} containing the default font variants
 	 */
-	public static final be.quodlibet.boxable.FontSet getDefaultFontSet() {
+	public static final FontSet getDefaultFontSet() {
 		if (defaultFonts.isEmpty()) {
 			// Use Standard14Fonts as fallback
-			org.apache.pdfbox.pdmodel.font.PDType1Font regular = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA);
-			org.apache.pdfbox.pdmodel.font.PDType1Font bold = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD);
-			org.apache.pdfbox.pdmodel.font.PDType1Font italic = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_OBLIQUE);
-			org.apache.pdfbox.pdmodel.font.PDType1Font boldItalic = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
+			PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+			PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+			PDType1Font italic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+			PDType1Font boldItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
 			
-			return new be.quodlibet.boxable.FontSet("Helvetica", regular, bold, italic, boldItalic);
+			return new FontSet("Helvetica", regular, bold, italic, boldItalic);
 		} else {
 			PDFont regular = defaultFonts.get("font");
 			PDFont bold = defaultFonts.get("fontBold");
@@ -391,15 +397,15 @@ public final class FontUtils {
 			// Check if any of the default fonts are null - if so, fall back to Standard14Fonts
 			if (regular == null || bold == null || italic == null || boldItalic == null) {
 				logger.warn("Some default fonts are null, falling back to Standard14Fonts");
-				org.apache.pdfbox.pdmodel.font.PDType1Font regularFallback = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA);
-				org.apache.pdfbox.pdmodel.font.PDType1Font boldFallback = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD);
-				org.apache.pdfbox.pdmodel.font.PDType1Font italicFallback = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_OBLIQUE);
-				org.apache.pdfbox.pdmodel.font.PDType1Font boldItalicFallback = new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
+				PDType1Font regularFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+				PDType1Font boldFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+				PDType1Font italicFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+				PDType1Font boldItalicFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
 				
-				return new be.quodlibet.boxable.FontSet("Helvetica", regularFallback, boldFallback, italicFallback, boldItalicFallback);
+				return new FontSet("Helvetica", regularFallback, boldFallback, italicFallback, boldItalicFallback);
 			}
 			
-			return new be.quodlibet.boxable.FontSet("Default", regular, bold, italic, boldItalic);
+			return new FontSet("Default", regular, bold, italic, boldItalic);
 		}
 	}
 }
