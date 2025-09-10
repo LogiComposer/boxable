@@ -189,4 +189,21 @@ public final class FontUtils {
 		defaultFonts.put("fontItalic", loadFont(document, "fonts/FreeSansOblique.ttf"));
 		defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/FreeSansBoldOblique.ttf"));
 	}
+
+	/**
+	 * <p>
+	 * Sets Google Source Sans 3 fonts as the default fonts for the Boxable library.
+	 * This method loads and caches all four variants: Regular, Bold, Italic, and Bold Italic.
+	 * The fonts are loaded only once and reused for all subsequent PDF generation.
+	 * </p>
+	 * 
+	 * @param document
+	 *            {@link PDDocument} where fonts will be loaded and embedded
+	 */
+	public static void setSourceSans3FontsAsDefault(PDDocument document) {
+		defaultFonts.put("font", loadFont(document, "fonts/SourceSans3-Regular.ttf"));
+		defaultFonts.put("fontBold", loadFont(document, "fonts/SourceSans3-Bold.ttf"));
+		defaultFonts.put("fontItalic", loadFont(document, "fonts/SourceSans3-Italic.ttf"));
+		defaultFonts.put("fontBoldItalic", loadFont(document, "fonts/SourceSans3-BoldItalic.ttf"));
+	}
 }
