@@ -106,9 +106,9 @@ public class PDFontTextAdapter {
      */
     public float getStringWidth(String text, float fontSize) {
         if (text == null || text.isEmpty()) {
-            return 0f;
+            return text;
         }
-        
+        text = sanitizeText(text);        
         return FontUtils.getStringWidth(font, text, fontSize);
     }
     
