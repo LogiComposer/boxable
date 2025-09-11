@@ -829,5 +829,15 @@ public class Cell<T extends PDPage> {
 		return this.isTextUnderline;
 	}
 
+	/**
+	 * <p>
+	 * Gets the row that contains this cell.
+	 * </p>
+	 *
+	 * @return The parent row
+	 */
+	protected Row<T> getRow() {
+		return row;
+	}
 
 }
