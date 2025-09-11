@@ -294,4 +294,66 @@ public class Row<T extends PDPage> {
 	public Table<T> getTable() {
 		return table;
 	}
+	
+	/**
+	 * <p>
+	 * Creates a SafeTextCell with provided width, cell value and default left top
+	 * alignment. Text is automatically sanitized using PDFontTextAdapter.
+	 * </p>
+	 * 
+	 * @param width
+	 *            Absolute width in points or in % of table width
+	 * @param value
+	 *            Cell's value (content)
+	 * @return New {@link SafeTextCell}
+	 */
+	public SafeTextCell<T> createSafeTextCell(float width, String value) {
+		return createSafeTextCell(width, value, HorizontalAlignment.LEFT, VerticalAlignment.TOP);
+	}
+
+	/**
+	 * <p>
+	 * Creates a SafeTextCell with provided width, cell value, horizontal and vertical
+	 * alignment. Text is automatically sanitized using PDFontTextAdapter.
+	 * </p>
+	 * 
+	 * @param width
+	 *            Absolute width in points or in % of table width
+	 * @param value
+	 *            Cell's value (content)
+	 * @param align
+	 *            Cell's {@link HorizontalAlignment}
+	 * @param valign
+	 *            Cell's {@link VerticalAlignment}
+	 * @return New {@link SafeTextCell}
+	 */
+	public SafeTextCell<T> createSafeTextCell(float width, String value, HorizontalAlignment align, VerticalAlignment valign) {
+		SafeTextCell<T> cell = new SafeTextCell<T>(this, width, value, true, align, valign);
+		if (headerRow) {
+			// set all cell as header cell
+			cell.setHeaderCell(true);
+		}
+		setBorders(cell, cells.isEmpty());
+		cell.setLineSpacing(lineSpacing);
+		cells.add(cell);
+		return cell;
+	}
+
+	/**
+	 * <p>
+	 * Creates a SafeTextCell with the same width as the corresponding header cell.
+	 * Text is automatically sanitized using PDFontTextAdapter.
+	 * </p>
+	 *
+	 * @param value
+	 *            Cell's value (content)
+	 * @return new {@link SafeTextCell}
+	 */
+	public SafeTextCell<T> createSafeTextCell(String value) {
+		float headerCellWidth = table.getHeader().getCells().get(cells.size()).getWidth();
+		SafeTextCell<T> cell = new SafeTextCell<T>(this, headerCellWidth, value, false);
+		setBorders(cell, cells.isEmpty());
+		cells.add(cell);
+		return cell;
+	}
 }
