@@ -17,6 +17,7 @@ import be.quodlibet.boxable.utils.FontUtils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  * Test class for the new loadFont method that takes SupportedFont and FontStyle parameters.
@@ -177,9 +178,13 @@ public class FontUtilsLoadFontTest {
     public void testNullParameterHandling() throws IOException {
         PDDocument document = new PDDocument();
         
-        // Test with null FontStyle (should default to REGULAR according to implementation)
-        PDType0Font fontWithNullStyle = FontUtils.loadFont(document, SupportedFont.FREE_SANS, null);
-        assertNotNull("Font with null style should not be null (should default to REGULAR)", fontWithNullStyle);
+        // Test with null FontStyle (should throw IllegalArgumentException)
+        try {
+            FontUtils.loadFont(document, SupportedFont.FREE_SANS, null);
+            fail("Expected IllegalArgumentException when fontStyle is null");
+        } catch (IllegalArgumentException e) {
+            assertEquals("FontStyle cannot be null", e.getMessage());
+        }
         
         // Test with null SupportedFont (should return null)
         PDType0Font fontWithNullSupportedFont = FontUtils.loadFont(document, null, FontStyle.REGULAR);

@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.Objects;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -55,21 +54,6 @@ public final class FontUtils {
 	 */
 	private static final Map<String, FontMetrics> fontMetrics = new HashMap<>();
 
-	/**
-	 * <p>
-	 * {@link HashMap} for caching font file data to avoid frequent loading from files.
-	 * The key is the font path and the value is the font file data as byte array.
-	 */
-	private static final Map<String, byte[]> fontDataCache = new HashMap<>();
-
-	/**
-	 * <p>
-	 * {@link WeakHashMap} for caching PDType0Font objects per document to avoid unnecessary
-	 * PDType0Font object creation. Uses WeakHashMap to allow garbage collection of documents.
-	 * The outer map uses PDDocument as key, inner map uses font path as key.
-	 */
-	private static final Map<PDDocument, Map<String, PDType0Font>> documentFontCache = new WeakHashMap<>();
-
 	private static final Map<String, PDFont> defaultFonts = new HashMap<>();
 
 	private FontUtils() {
@@ -91,7 +75,7 @@ public final class FontUtils {
 		}
 
 		// Attempt to retrieve the font from the document-level cache
-		PDType0Font cachedFont = getCachedFont(document, fontPath);
+		PDType0Font cachedFont = FontCacheManager.getCachedFont(document, fontPath);
 		if (cachedFont != null) {
 			return cachedFont;
 		}
@@ -111,22 +95,8 @@ public final class FontUtils {
 		}
 	}
 
-	private static PDType0Font getCachedFont(PDDocument document, String fontPath) {
-		synchronized (documentFontCache) {
-			Map<String, PDType0Font> docFonts = documentFontCache.get(document);
-			if (docFonts != null) {
-				PDType0Font cachedFont = docFonts.get(fontPath);
-				if (cachedFont != null) {
-					logger.debug("Using cached PDType0Font for document and path: " + fontPath);
-					return cachedFont;
-				}
-			}
-		}
-		return null;
-	}
-
 	private static byte[] getFontData(String fontPath) throws IOException {
-		byte[] fontData = fontDataCache.get(fontPath);
+		byte[] fontData = FontCacheManager.getCachedFontData(fontPath);
 		if (fontData == null) {
 			try (InputStream fontStream = FontUtils.class.getClassLoader().getResourceAsStream(fontPath)) {
 				if (fontStream == null) {
@@ -134,8 +104,7 @@ public final class FontUtils {
 					return null;
 				}
 				fontData = readStreamToByteArray(fontStream);
-				fontDataCache.put(fontPath, fontData);
-				logger.debug("Cached font data for: " + fontPath);
+				FontCacheManager.cacheFontData(fontPath, fontData);
 			}
 		} else {
 			logger.debug("Using cached font data for: " + fontPath);
@@ -146,11 +115,7 @@ public final class FontUtils {
 	private static PDType0Font createAndCacheFont(PDDocument document, String fontPath, byte[] fontData) throws IOException {
 		PDType0Font font = PDType0Font.load(document, new ByteArrayInputStream(fontData));
 		if (font != null) {
-			synchronized (documentFontCache) {
-				Map<String, PDType0Font> docFonts = documentFontCache.computeIfAbsent(document, k -> new HashMap<>());
-				docFonts.put(fontPath, font);
-				logger.debug("Cached PDType0Font for document and path: " + fontPath);
-			}
+			FontCacheManager.cacheFont(document, fontPath, font);
 		}
 		return font;
 	}
@@ -186,14 +151,7 @@ public final class FontUtils {
 	 * @param document the PDDocument for which to clear the font cache
 	 */
 	public static void clearDocumentFontCache(PDDocument document) {
-		if (document != null) {
-			synchronized (documentFontCache) {
-				Map<String, PDType0Font> removedFonts = documentFontCache.remove(document);
-				if (removedFonts != null) {
-					logger.debug("Cleared font cache for document, removed " + removedFonts.size() + " cached fonts");
-				}
-			}
-		}
+		FontCacheManager.clearDocumentFontCache(document);
 	}
 
 	/**
@@ -204,9 +162,7 @@ public final class FontUtils {
 	 * @return the number of documents with cached fonts
 	 */
 	public static int getDocumentCacheSize() {
-		synchronized (documentFontCache) {
-			return documentFontCache.size();
-		}
+		return FontCacheManager.getDocumentCacheSize();
 	}
 
 	/**
@@ -218,13 +174,7 @@ public final class FontUtils {
 	 * @return the number of fonts cached for this document, or 0 if none
 	 */
 	public static int getFontCacheSize(PDDocument document) {
-		if (document == null) {
-			return 0;
-		}
-		synchronized (documentFontCache) {
-			Map<String, PDType0Font> docFonts = documentFontCache.get(document);
-			return docFonts != null ? docFonts.size() : 0;
-		}
+		return FontCacheManager.getFontCacheSize(document);
 	}
 
 	/**
@@ -422,8 +372,7 @@ public final class FontUtils {
 		}
 		
 		if (fontStyle == null) {
-			logger.warn("FontStyle cannot be null, defaulting to REGULAR");
-			fontStyle = FontStyle.REGULAR;
+			throw new IllegalArgumentException("FontStyle cannot be null");
 		}
 		
 		String fontPath;
