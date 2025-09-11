@@ -21,7 +21,7 @@ public class PDFontTextAdapter {
     private static final Logger logger = LoggerFactory.getLogger(PDFontTextAdapter.class);
     
     private final PDFont font;
-    private static final String REPLACEMENT_CHARACTER = "?";
+    private static final String REPLACEMENT_CHARACTER = "�";
     private static final String ELLIPSIS = "...";
     
     /**
