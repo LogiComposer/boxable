@@ -22,7 +22,9 @@ import be.quodlibet.boxable.text.Token;
 import be.quodlibet.boxable.text.TokenType;
 import be.quodlibet.boxable.text.Tokenizer;
 import be.quodlibet.boxable.text.WrappingFunction;
+import be.quodlibet.boxable.utils.FontTextCache;
 import be.quodlibet.boxable.utils.FontUtils;
+import be.quodlibet.boxable.utils.PDFontTextAdapter;
 import be.quodlibet.boxable.utils.PDStreamUtils;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
@@ -52,6 +54,15 @@ public class Paragraph {
 	private List<Token> tokens;
 	private List<String> lines;
 	private Float spaceWidth;
+	
+	// Optional shared FontTextCache for performance optimization
+	private FontTextCache sharedFontTextCache;
+	
+	// Cached PDFontTextAdapters for performance optimization
+	private PDFontTextAdapter fontTextAdapter;
+	private PDFontTextAdapter boldFontTextAdapter;
+	private PDFontTextAdapter italicFontTextAdapter;
+	private PDFontTextAdapter boldItalicFontTextAdapter;
 
 	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align) {
 		this(text, font, fontSize, width, align, null);
@@ -73,6 +84,24 @@ public class Paragraph {
 	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
 			WrappingFunction wrappingFunction) {
 		this(text, font, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction);
+	}
+	
+	/**
+	 * <p>
+	 * Constructor with shared FontTextCache for better performance.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param font The PDFont to use
+	 * @param fontSize The font size
+	 * @param width The width constraint
+	 * @param align The horizontal alignment
+	 * @param wrappingFunction The wrapping function
+	 * @param fontTextCache The shared FontTextCache instance for performance optimization
+	 */
+	public Paragraph(String text, PDFont font, float fontSize, float width, 
+			final HorizontalAlignment align, WrappingFunction wrappingFunction, FontTextCache fontTextCache) {
+		this(text, font, null, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction, 1, fontTextCache);
 	}
 
 	/**
@@ -157,6 +186,30 @@ public class Paragraph {
 	public Paragraph(String text, PDFont font, FontSet fontSet, float fontSize, float width, 
 			final HorizontalAlignment align, final Color color, final TextType textType, 
 			WrappingFunction wrappingFunction, float lineSpacing) {
+		this(text, font, fontSet, fontSize, width, align, color, textType, wrappingFunction, lineSpacing, null);
+	}
+	
+	/**
+	 * <p>
+	 * Enhanced constructor with FontSet support and shared FontTextCache for better performance.
+	 * Implements the font extraction logic as specified in the requirements.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param font The primary font (used if FontSet is null)
+	 * @param fontSet The FontSet containing all font variants (takes precedence over font parameter)
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 * @param color The text color
+	 * @param textType The text type (underline, etc.)
+	 * @param wrappingFunction The wrapping function
+	 * @param lineSpacing The line spacing
+	 * @param fontTextCache The shared FontTextCache instance for performance optimization (can be null)
+	 */
+	public Paragraph(String text, PDFont font, FontSet fontSet, float fontSize, float width, 
+			final HorizontalAlignment align, final Color color, final TextType textType, 
+			WrappingFunction wrappingFunction, float lineSpacing, FontTextCache fontTextCache) {
 		this.color = color;
 		this.text = text;
 		this.fontSize = fontSize;
@@ -165,6 +218,7 @@ public class Paragraph {
 		this.setAlign(align);
 		this.wrappingFunction = wrappingFunction;
 		this.lineSpacing = lineSpacing;
+		this.sharedFontTextCache = fontTextCache;
 
 		// Check if a FontSet is provided and extract fonts from it
 		if (fontSet != null) {
@@ -350,7 +404,12 @@ public class Paragraph {
 							stack.add(new HTMLListNode(orderListElement, orderingNumber));
 							try {
 								float tab = indentLevel(DEFAULT_TAB);
-								float orderingNumberAndTab = font.getStringWidth(orderingNumber) + tab;
+								// Use PDFontTextAdapter for optimized string width calculation
+								PDFontTextAdapter adapter = getFontTextAdapter(font);
+								float orderingNumberWidth = (adapter != null) ? 
+									adapter.getStringWidth(orderingNumber, 1000f) :
+									font.getStringWidth(orderingNumber);
+								float orderingNumberAndTab = orderingNumberWidth + tab;
 								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING, String
 										.valueOf(orderingNumberAndTab / 1000 * getFontSize())));
 							} catch (IOException e) {
@@ -575,10 +634,17 @@ public class Paragraph {
 						StringBuilder restOfTheWord = new StringBuilder();
 						for (int i = 0; i < lastTextToken.length(); i++) {
 							char c = lastTextToken.charAt(i);
-							try {
-								width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
-							} catch (IOException e) {
-								e.printStackTrace();
+							// Use PDFontTextAdapter for optimized character width calculation
+							PDFontTextAdapter adapter = getFontTextAdapter(currentFont);
+							if (adapter != null) {
+								width += adapter.getStringWidth(String.valueOf(c), fontSize);
+							} else {
+								// Fallback for null adapter
+								try {
+									width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
 							}
 							if(alreadyTextInLine){
 								if (width < this.width - textInLine.trimmedWidth()) {
@@ -686,6 +752,65 @@ public class Paragraph {
 			return fontItalic;
 		} else {
 			return font;
+		}
+	}
+	
+	/**
+	 * <p>
+	 * Gets or creates a cached PDFontTextAdapter for the specified font.
+	 * This provides optimized text processing with caching for repeated operations.
+	 * Uses shared FontTextCache if available for better performance across the document.
+	 * </p>
+	 * 
+	 * @param font The font to get an adapter for
+	 * @return A PDFontTextAdapter wrapping the specified font
+	 */
+	private PDFontTextAdapter getFontTextAdapter(PDFont font) {
+		if (font == null) {
+			return null;
+		}
+		
+		// Determine which cached adapter to use based on the font
+		if (font.equals(this.font)) {
+			if (fontTextAdapter == null) {
+				fontTextAdapter = createPDFontTextAdapter(font);
+			}
+			return fontTextAdapter;
+		} else if (font.equals(fontBold)) {
+			if (boldFontTextAdapter == null) {
+				boldFontTextAdapter = createPDFontTextAdapter(font);
+			}
+			return boldFontTextAdapter;
+		} else if (font.equals(fontItalic)) {
+			if (italicFontTextAdapter == null) {
+				italicFontTextAdapter = createPDFontTextAdapter(font);
+			}
+			return italicFontTextAdapter;
+		} else if (font.equals(fontBoldItalic)) {
+			if (boldItalicFontTextAdapter == null) {
+				boldItalicFontTextAdapter = createPDFontTextAdapter(font);
+			}
+			return boldItalicFontTextAdapter;
+		} else {
+			// For any other font, create a new adapter (don't cache unknown fonts)
+			return createPDFontTextAdapter(font);
+		}
+	}
+	
+	/**
+	 * <p>
+	 * Creates a PDFontTextAdapter with the shared cache if available, or with its own cache otherwise.
+	 * </p>
+	 * 
+	 * @param font The font to create an adapter for
+	 * @return A PDFontTextAdapter instance
+	 */
+	private PDFontTextAdapter createPDFontTextAdapter(PDFont font) {
+		if (sharedFontTextCache != null) {
+			return new PDFontTextAdapter(font, sharedFontTextCache);
+		} else {
+			// Backward compatibility: create with its own cache
+			return new PDFontTextAdapter(font);
 		}
 	}
 
@@ -826,11 +951,19 @@ public class Paragraph {
 	}
 
 	private float getHorizontalFreeSpace(final String text) {
-		try {
-			final float tw = font.getStringWidth(text.trim()) / 1000 * fontSize;
+		// Use PDFontTextAdapter for optimized string width calculation
+		PDFontTextAdapter adapter = getFontTextAdapter(font);
+		if (adapter != null) {
+			final float tw = adapter.getStringWidth(text.trim(), fontSize);
 			return width - tw;
-		} catch (IOException e) {
-			throw new IllegalStateException("Unable to calculate text width", e);
+		} else {
+			// Fallback for null adapter
+			try {
+				final float tw = font.getStringWidth(text.trim()) / 1000 * fontSize;
+				return width - tw;
+			} catch (IOException e) {
+				throw new IllegalStateException("Unable to calculate text width", e);
+			}
 		}
 	}
 

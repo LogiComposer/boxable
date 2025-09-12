@@ -24,19 +24,30 @@ public class PDFontTextAdapter {
     public static final String REPLACEMENT_CHARACTER = "|?|";
     private static final String ELLIPSIS = "...";
     
+    // Cache instance for all font text operations
+    private final FontTextCache cache;
+    
+       
     /**
      * <p>
-     * Creates a new PDFontTextAdapter wrapping the specified PDFont.
+     * Creates a new PDFontTextAdapter wrapping the specified PDFont with a shared cache.
+     * This is the preferred constructor for better performance when multiple font adapters
+     * are used in the same document.
      * </p>
      * 
      * @param font The PDFont to wrap for text operations
-     * @throws IllegalArgumentException if font is null
+     * @param cache The shared FontTextCache instance to use
+     * @throws IllegalArgumentException if font or cache is null
      */
-    public PDFontTextAdapter(PDFont font) {
+    public PDFontTextAdapter(PDFont font, FontTextCache cache) {
         if (font == null) {
             throw new IllegalArgumentException("Font cannot be null");
         }
+        if (cache == null) {
+            throw new IllegalArgumentException("Cache cannot be null");
+        }
         this.font = font;
+        this.cache = cache;
     }
     
     /**
@@ -78,19 +89,36 @@ public class PDFontTextAdapter {
     /**
      * <p>
      * Validates if the font can display a specific character.
+     * Results are cached to improve performance for repeated character checks.
      * </p>
      * 
      * @param codePoint The Unicode code point to check
      * @return true if the font can display the character, false otherwise
      */
     public boolean canDisplayCharacter(int codePoint) {
+        // Check cache first using font-specific key
+        String fontName = font.getName();
+        Boolean cachedResult = cache.getCharacterDisplayResult(fontName, codePoint);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+        
         try {
-            String character = new String(Character.toChars(codePoint));
+            // Get or create the character string, caching it to avoid repeated object creation
+            String character = cache.getCharacterString(codePoint);
+            
+            // Test if font can display the character by attempting to get its width
             font.getStringWidth(character);
+            
+            // Cache successful result
+            cache.putCharacterDisplayResult(fontName, codePoint, true);
             return true;
         } catch (IOException | IllegalArgumentException e) {
             // Font cannot display this character
             logger.debug("Font {} cannot display character with code point {}", font.getName(), codePoint);
+            
+            // Cache failed result
+            cache.putCharacterDisplayResult(fontName, codePoint, false);
             return false;
         }
     }
@@ -98,6 +126,7 @@ public class PDFontTextAdapter {
     /**
      * <p>
      * Returns the width of a string at the given font size.
+     * Results are cached to improve performance for repeated calculations.
      * </p>
      * 
      * @param text The text to measure
@@ -108,8 +137,21 @@ public class PDFontTextAdapter {
         if (text == null || text.isEmpty()) {
             return 0.0f;
         }
-        text = sanitizeText(text);        
-        return FontUtils.getStringWidth(font, text, fontSize);
+        
+        String sanitizedText = sanitizeText(text);
+        
+        // Check cache first using font-specific key
+        String fontName = font.getName();
+        Float cachedWidth = cache.getStringWidth(fontName, sanitizedText, fontSize);
+        if (cachedWidth != null) {
+            return cachedWidth;
+        }
+        
+        // Calculate and cache the result
+        float width = FontUtils.getStringWidth(font, sanitizedText, fontSize);
+        cache.putStringWidth(fontName, sanitizedText, fontSize, width);
+        
+        return width;
     }
     
     /**
@@ -244,5 +286,51 @@ public class PDFontTextAdapter {
      */
     public PDFont getFont() {
         return font;
+    }
+    
+    /**
+     * <p>
+     * Clears all caches to free memory. This can be useful when processing large amounts
+     * of text or when memory usage becomes a concern.
+     * </p>
+     */
+    public void clearCaches() {
+        cache.clearCaches();
+    }
+    
+    /**
+     * <p>
+     * Returns the current size of the character display cache.
+     * Useful for monitoring cache performance and memory usage.
+     * </p>
+     * 
+     * @return The number of cached character display results
+     */
+    public int getCharacterDisplayCacheSize() {
+        return cache.getCharacterDisplayCacheSize();
+    }
+    
+    /**
+     * <p>
+     * Returns the current size of the string width cache.
+     * Useful for monitoring cache performance and memory usage.
+     * </p>
+     * 
+     * @return The number of cached string width results
+     */
+    public int getStringWidthCacheSize() {
+        return cache.getStringWidthCacheSize();
+    }
+    
+    /**
+     * <p>
+     * Returns the current size of the character string cache.
+     * Useful for monitoring cache performance and memory usage.
+     * </p>
+     * 
+     * @return The number of cached character string objects
+     */
+    public int getCharacterStringCacheSize() {
+        return cache.getCharacterStringCacheSize();
     }
 }

@@ -8,6 +8,7 @@ import be.quodlibet.boxable.line.LineStyle;
 import be.quodlibet.boxable.page.PageProvider;
 import be.quodlibet.boxable.text.Token;
 import be.quodlibet.boxable.text.WrappingFunction;
+import be.quodlibet.boxable.utils.FontTextCache;
 import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PDStreamUtils;
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
@@ -142,6 +143,14 @@ public abstract class Table<T extends PDPage> {
     }
 
     protected abstract void loadFonts() throws IOException;
+    
+    /**
+     * Gets the font text cache for this table to enable performance optimization
+     * by sharing cached calculations across different fonts and text operations.
+     * 
+     * @return The FontTextCache instance for this table
+     */
+    public abstract FontTextCache getFontTextCache();
 
     protected PDType0Font loadFont(String fontPath) throws IOException {
         return FontUtils.loadFont(getDocument(), fontPath);
@@ -175,7 +184,7 @@ public abstract class Table<T extends PDPage> {
         } else {
             PageContentStreamOptimized articleTitle = createPdPageContentStream();
             Paragraph paragraph = new Paragraph(title, font, fontSize, tableWidth, HorizontalAlignment.get(alignment),
-                    wrappingFunction);
+                    wrappingFunction, getFontTextCache());
             paragraph.setDrawDebug(drawDebug);
             yStart = paragraph.write(articleTitle, margin, yStart);
             if (paragraph.getHeight() < height) {
