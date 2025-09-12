@@ -1,6 +1,7 @@
 package be.quodlibet.boxable;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
@@ -25,6 +26,8 @@ public class BoxableUtils {
 	 */
 	@Deprecated
 	public static final PDType0Font loadFont(PDDocument document, String fontPath) throws IOException {
-		return PDType0Font.load(document, BoxableUtils.class.getClassLoader().getResourceAsStream(fontPath));
+		try (InputStream fontStream = BoxableUtils.class.getClassLoader().getResourceAsStream(fontPath)) {
+			return PDType0Font.load(document, fontStream);
+		}
 	}
 }

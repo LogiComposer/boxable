@@ -113,11 +113,13 @@ public final class FontUtils {
 	}
 
 	private static PDType0Font createAndCacheFont(PDDocument document, String fontPath, byte[] fontData) throws IOException {
-		PDType0Font font = PDType0Font.load(document, new ByteArrayInputStream(fontData));
-		if (font != null) {
-			FontCacheManager.cacheFont(document, fontPath, font);
+		try (InputStream fontStream = new ByteArrayInputStream(fontData)) {
+			PDType0Font font = PDType0Font.load(document, fontStream);
+			if (font != null) {
+				FontCacheManager.cacheFont(document, fontPath, font);
+			}
+			return font;
 		}
-		return font;
 	}
 
 	/**
