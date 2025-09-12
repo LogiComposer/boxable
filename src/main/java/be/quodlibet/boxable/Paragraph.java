@@ -22,6 +22,7 @@ import be.quodlibet.boxable.text.Token;
 import be.quodlibet.boxable.text.TokenType;
 import be.quodlibet.boxable.text.Tokenizer;
 import be.quodlibet.boxable.text.WrappingFunction;
+import be.quodlibet.boxable.utils.FontTextCache;
 import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PDFontTextAdapter;
 import be.quodlibet.boxable.utils.PDStreamUtils;
@@ -54,6 +55,9 @@ public class Paragraph {
 	private List<String> lines;
 	private Float spaceWidth;
 	
+	// Optional shared FontTextCache for performance optimization
+	private FontTextCache sharedFontTextCache;
+	
 	// Cached PDFontTextAdapters for performance optimization
 	private PDFontTextAdapter fontTextAdapter;
 	private PDFontTextAdapter boldFontTextAdapter;
@@ -80,6 +84,24 @@ public class Paragraph {
 	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
 			WrappingFunction wrappingFunction) {
 		this(text, font, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction);
+	}
+	
+	/**
+	 * <p>
+	 * Constructor with shared FontTextCache for better performance.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param font The PDFont to use
+	 * @param fontSize The font size
+	 * @param width The width constraint
+	 * @param align The horizontal alignment
+	 * @param wrappingFunction The wrapping function
+	 * @param fontTextCache The shared FontTextCache instance for performance optimization
+	 */
+	public Paragraph(String text, PDFont font, float fontSize, float width, 
+			final HorizontalAlignment align, WrappingFunction wrappingFunction, FontTextCache fontTextCache) {
+		this(text, font, null, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction, 1, fontTextCache);
 	}
 
 	/**
@@ -164,6 +186,30 @@ public class Paragraph {
 	public Paragraph(String text, PDFont font, FontSet fontSet, float fontSize, float width, 
 			final HorizontalAlignment align, final Color color, final TextType textType, 
 			WrappingFunction wrappingFunction, float lineSpacing) {
+		this(text, font, fontSet, fontSize, width, align, color, textType, wrappingFunction, lineSpacing, null);
+	}
+	
+	/**
+	 * <p>
+	 * Enhanced constructor with FontSet support and shared FontTextCache for better performance.
+	 * Implements the font extraction logic as specified in the requirements.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param font The primary font (used if FontSet is null)
+	 * @param fontSet The FontSet containing all font variants (takes precedence over font parameter)
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 * @param color The text color
+	 * @param textType The text type (underline, etc.)
+	 * @param wrappingFunction The wrapping function
+	 * @param lineSpacing The line spacing
+	 * @param fontTextCache The shared FontTextCache instance for performance optimization (can be null)
+	 */
+	public Paragraph(String text, PDFont font, FontSet fontSet, float fontSize, float width, 
+			final HorizontalAlignment align, final Color color, final TextType textType, 
+			WrappingFunction wrappingFunction, float lineSpacing, FontTextCache fontTextCache) {
 		this.color = color;
 		this.text = text;
 		this.fontSize = fontSize;
@@ -172,6 +218,7 @@ public class Paragraph {
 		this.setAlign(align);
 		this.wrappingFunction = wrappingFunction;
 		this.lineSpacing = lineSpacing;
+		this.sharedFontTextCache = fontTextCache;
 
 		// Check if a FontSet is provided and extract fonts from it
 		if (fontSet != null) {
@@ -712,6 +759,7 @@ public class Paragraph {
 	 * <p>
 	 * Gets or creates a cached PDFontTextAdapter for the specified font.
 	 * This provides optimized text processing with caching for repeated operations.
+	 * Uses shared FontTextCache if available for better performance across the document.
 	 * </p>
 	 * 
 	 * @param font The font to get an adapter for
@@ -725,26 +773,43 @@ public class Paragraph {
 		// Determine which cached adapter to use based on the font
 		if (font.equals(this.font)) {
 			if (fontTextAdapter == null) {
-				fontTextAdapter = new PDFontTextAdapter(font);
+				fontTextAdapter = createPDFontTextAdapter(font);
 			}
 			return fontTextAdapter;
 		} else if (font.equals(fontBold)) {
 			if (boldFontTextAdapter == null) {
-				boldFontTextAdapter = new PDFontTextAdapter(font);
+				boldFontTextAdapter = createPDFontTextAdapter(font);
 			}
 			return boldFontTextAdapter;
 		} else if (font.equals(fontItalic)) {
 			if (italicFontTextAdapter == null) {
-				italicFontTextAdapter = new PDFontTextAdapter(font);
+				italicFontTextAdapter = createPDFontTextAdapter(font);
 			}
 			return italicFontTextAdapter;
 		} else if (font.equals(fontBoldItalic)) {
 			if (boldItalicFontTextAdapter == null) {
-				boldItalicFontTextAdapter = new PDFontTextAdapter(font);
+				boldItalicFontTextAdapter = createPDFontTextAdapter(font);
 			}
 			return boldItalicFontTextAdapter;
 		} else {
 			// For any other font, create a new adapter (don't cache unknown fonts)
+			return createPDFontTextAdapter(font);
+		}
+	}
+	
+	/**
+	 * <p>
+	 * Creates a PDFontTextAdapter with the shared cache if available, or with its own cache otherwise.
+	 * </p>
+	 * 
+	 * @param font The font to create an adapter for
+	 * @return A PDFontTextAdapter instance
+	 */
+	private PDFontTextAdapter createPDFontTextAdapter(PDFont font) {
+		if (sharedFontTextCache != null) {
+			return new PDFontTextAdapter(font, sharedFontTextCache);
+		} else {
+			// Backward compatibility: create with its own cache
 			return new PDFontTextAdapter(font);
 		}
 	}

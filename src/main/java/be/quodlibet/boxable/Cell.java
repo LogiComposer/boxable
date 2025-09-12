@@ -396,6 +396,7 @@ public class Cell<T extends PDPage> {
 	 * <p>
 	 * Gets or creates a cached PDFontTextAdapter for this cell's current font.
 	 * This provides optimized text processing with caching for repeated operations.
+	 * Uses the table's shared FontTextCache for better performance across the document.
 	 * </p>
 	 * 
 	 * @return A PDFontTextAdapter wrapping the cell's current effective font
@@ -405,7 +406,8 @@ public class Cell<T extends PDPage> {
 		
 		// Create or recreate adapter if font has changed
 		if (fontTextAdapter == null || !fontTextAdapter.getFont().equals(currentFont)) {
-			fontTextAdapter = new PDFontTextAdapter(currentFont);
+			// Use the table's shared FontTextCache for better performance
+			fontTextAdapter = new PDFontTextAdapter(currentFont, row.getTable().getFontTextCache());
 		}
 		
 		return fontTextAdapter;

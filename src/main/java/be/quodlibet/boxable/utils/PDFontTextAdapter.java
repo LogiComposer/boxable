@@ -25,21 +25,43 @@ public class PDFontTextAdapter {
     private static final String ELLIPSIS = "...";
     
     // Cache instance for all font text operations
-    private final FontTextCache cache = new FontTextCache();
+    private final FontTextCache cache;
     
     /**
      * <p>
      * Creates a new PDFontTextAdapter wrapping the specified PDFont.
+     * This constructor creates its own FontTextCache instance for backward compatibility.
      * </p>
      * 
      * @param font The PDFont to wrap for text operations
      * @throws IllegalArgumentException if font is null
+     * @deprecated Use {@link #PDFontTextAdapter(PDFont, FontTextCache)} for better performance
      */
+    @Deprecated
     public PDFontTextAdapter(PDFont font) {
+        this(font, new FontTextCache());
+    }
+    
+    /**
+     * <p>
+     * Creates a new PDFontTextAdapter wrapping the specified PDFont with a shared cache.
+     * This is the preferred constructor for better performance when multiple font adapters
+     * are used in the same document.
+     * </p>
+     * 
+     * @param font The PDFont to wrap for text operations
+     * @param cache The shared FontTextCache instance to use
+     * @throws IllegalArgumentException if font or cache is null
+     */
+    public PDFontTextAdapter(PDFont font, FontTextCache cache) {
         if (font == null) {
             throw new IllegalArgumentException("Font cannot be null");
         }
+        if (cache == null) {
+            throw new IllegalArgumentException("Cache cannot be null");
+        }
         this.font = font;
+        this.cache = cache;
     }
     
     /**
@@ -88,8 +110,9 @@ public class PDFontTextAdapter {
      * @return true if the font can display the character, false otherwise
      */
     public boolean canDisplayCharacter(int codePoint) {
-        // Check cache first
-        Boolean cachedResult = cache.getCharacterDisplayResult(codePoint);
+        // Check cache first using font-specific key
+        String fontName = font.getName();
+        Boolean cachedResult = cache.getCharacterDisplayResult(fontName, codePoint);
         if (cachedResult != null) {
             return cachedResult;
         }
@@ -102,14 +125,14 @@ public class PDFontTextAdapter {
             font.getStringWidth(character);
             
             // Cache successful result
-            cache.putCharacterDisplayResult(codePoint, true);
+            cache.putCharacterDisplayResult(fontName, codePoint, true);
             return true;
         } catch (IOException | IllegalArgumentException e) {
             // Font cannot display this character
             logger.debug("Font {} cannot display character with code point {}", font.getName(), codePoint);
             
             // Cache failed result
-            cache.putCharacterDisplayResult(codePoint, false);
+            cache.putCharacterDisplayResult(fontName, codePoint, false);
             return false;
         }
     }
@@ -131,18 +154,16 @@ public class PDFontTextAdapter {
         
         String sanitizedText = sanitizeText(text);
         
-        // Create cache key that includes both text and font size for accurate caching
-        String cacheKey = sanitizedText + "|" + fontSize;
-        
-        // Check cache first
-        Float cachedWidth = cache.getStringWidth(cacheKey);
+        // Check cache first using font-specific key
+        String fontName = font.getName();
+        Float cachedWidth = cache.getStringWidth(fontName, sanitizedText, fontSize);
         if (cachedWidth != null) {
             return cachedWidth;
         }
         
         // Calculate and cache the result
         float width = FontUtils.getStringWidth(font, sanitizedText, fontSize);
-        cache.putStringWidth(cacheKey, width);
+        cache.putStringWidth(fontName, sanitizedText, fontSize, width);
         
         return width;
     }

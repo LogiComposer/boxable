@@ -5,11 +5,15 @@ import java.io.IOException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import be.quodlibet.boxable.page.PageProvider;
+import be.quodlibet.boxable.utils.FontTextCache;
 
 /**
  * Created by dgautier on 3/18/2015.
  */
 public abstract class AbstractTemplatedTable<T extends AbstractPageTemplate> extends Table<T> {
+	
+    // Font text cache for this templated table
+    private final FontTextCache fontTextCache = new FontTextCache();
 	
 	@Deprecated
 	public AbstractTemplatedTable(float yStart, float yStartNewPage, float bottomMargin, float width, float margin, PDDocument document, T currentPage, boolean drawLines, boolean drawContent) throws IOException {
@@ -29,6 +33,11 @@ public abstract class AbstractTemplatedTable<T extends AbstractPageTemplate> ext
     public AbstractTemplatedTable(float yStartNewPage, float bottomMargin, float width, float margin, PDDocument document, boolean drawLines, boolean drawContent, PageProvider<T> pageProvider) throws IOException {
         super(yStartNewPage, 0, bottomMargin, width, margin, document, drawLines, drawContent, pageProvider);
         setYStart(getCurrentPage().yStart());
+    }
+
+    @Override
+    public FontTextCache getFontTextCache() {
+        return fontTextCache;
     }
 
 }
