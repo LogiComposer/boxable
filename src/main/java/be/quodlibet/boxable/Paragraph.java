@@ -206,8 +206,34 @@ public class Paragraph {
 	public Paragraph(String text, FontSet fontSet, FontStyle fontStyle, float fontSize, float width, 
 			final HorizontalAlignment align, final Color color, final TextType textType, 
 			WrappingFunction wrappingFunction, float lineSpacing) {
-		// Use the main constructor with FontSet support
-		this(text, fontSet != null ? fontSet.getFont(fontStyle) : null, fontSet, fontSize, width, align, color, textType, wrappingFunction, lineSpacing);
+		this.color = color;
+		this.text = text;
+		this.fontSize = fontSize;
+		this.width = width;
+		this.textType = textType;
+		this.setAlign(align);
+		this.wrappingFunction = wrappingFunction;
+		this.lineSpacing = lineSpacing;
+
+		// Extract all fonts from FontSet and set the primary font based on style
+		if (fontSet != null) {
+			this.font = fontSet.getFont(fontStyle);
+			this.fontBold = fontSet.getBold();
+			this.fontItalic = fontSet.getItalic();
+			this.fontBoldItalic = fontSet.getBoldItalic();
+		} else {
+			// Fallback when no FontSet is provided
+			this.font = null;
+			if (FontUtils.getDefaultfonts().isEmpty()) {
+				fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+				fontItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+				fontBoldItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
+			} else {
+				fontBold = FontUtils.getDefaultfonts().get("fontBold");
+				fontBoldItalic = FontUtils.getDefaultfonts().get("fontBoldItalic");
+				fontItalic = FontUtils.getDefaultfonts().get("fontItalic");
+			}
+		}
 	}
 
 	public List<String> getLines() {
