@@ -75,6 +75,58 @@ public class Paragraph {
 		this(text, font, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction);
 	}
 
+	/**
+	 * <p>
+	 * Constructor with FontSet support.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param fontSet The FontSet containing all font variants
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 */
+	public Paragraph(String text, FontSet fontSet, float fontSize, float width, final HorizontalAlignment align) {
+		this(text, null, fontSet, fontSize, width, align, Color.BLACK, null, null, 1);
+	}
+
+	/**
+	 * <p>
+	 * Constructor with FontSet support and wrapping function.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param fontSet The FontSet containing all font variants
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 * @param wrappingFunction The wrapping function
+	 */
+	public Paragraph(String text, FontSet fontSet, float fontSize, float width, 
+			final HorizontalAlignment align, WrappingFunction wrappingFunction) {
+		this(text, null, fontSet, fontSize, width, align, Color.BLACK, null, wrappingFunction, 1);
+	}
+
+	/**
+	 * <p>
+	 * Constructor with FontSet support, color and text type.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param fontSet The FontSet containing all font variants
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 * @param color The text color
+	 * @param textType The text type
+	 * @param wrappingFunction The wrapping function
+	 */
+	public Paragraph(String text, FontSet fontSet, float fontSize, float width, 
+			final HorizontalAlignment align, final Color color, final TextType textType, 
+			WrappingFunction wrappingFunction) {
+		this(text, null, fontSet, fontSize, width, align, color, textType, wrappingFunction, 1);
+	}
+
 	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
 			final Color color, final TextType textType, WrappingFunction wrappingFunction) {
 		this(text, font, fontSize, width, align, color, textType, wrappingFunction, 1);
@@ -82,25 +134,57 @@ public class Paragraph {
 
 	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
 			final Color color, final TextType textType, WrappingFunction wrappingFunction, float lineSpacing) {
+		this(text, font, null, fontSize, width, align, color, textType, wrappingFunction, lineSpacing);
+	}
+
+	/**
+	 * <p>
+	 * Enhanced constructor with FontSet support for better font management.
+	 * Implements the font extraction logic as specified in the requirements.
+	 * </p>
+	 * 
+	 * @param text The text content
+	 * @param font The primary font (used if FontSet is null)
+	 * @param fontSet The FontSet containing all font variants (takes precedence over font parameter)
+	 * @param fontSize The font size
+	 * @param width The paragraph width
+	 * @param align The horizontal alignment
+	 * @param color The text color
+	 * @param textType The text type (underline, etc.)
+	 * @param wrappingFunction The wrapping function
+	 * @param lineSpacing The line spacing
+	 */
+	public Paragraph(String text, PDFont font, FontSet fontSet, float fontSize, float width, 
+			final HorizontalAlignment align, final Color color, final TextType textType, 
+			WrappingFunction wrappingFunction, float lineSpacing) {
 		this.color = color;
 		this.text = text;
-		this.font = font;
-		// check if we have different default font for italic and bold text
-		if (FontUtils.getDefaultfonts().isEmpty()) {
-			fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-			fontItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
-			fontBoldItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
-		} else {
-			fontBold = FontUtils.getDefaultfonts().get("fontBold");
-			fontBoldItalic = FontUtils.getDefaultfonts().get("fontBoldItalic");
-			fontItalic = FontUtils.getDefaultfonts().get("fontItalic");
-		}
 		this.fontSize = fontSize;
 		this.width = width;
 		this.textType = textType;
 		this.setAlign(align);
 		this.wrappingFunction = wrappingFunction;
 		this.lineSpacing = lineSpacing;
+
+		// Check if a FontSet is provided and extract fonts from it
+		if (fontSet != null) {
+			this.font = fontSet.getRegular();
+			this.fontBold = fontSet.getBold();
+			this.fontItalic = fontSet.getItalic();
+			this.fontBoldItalic = fontSet.getBoldItalic();
+		} else {
+			this.font = font;
+			// check if we have different default font for italic and bold text
+			if (FontUtils.getDefaultfonts().isEmpty()) {
+				fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+				fontItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+				fontBoldItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
+			} else {
+				fontBold = FontUtils.getDefaultfonts().get("fontBold");
+				fontBoldItalic = FontUtils.getDefaultfonts().get("fontBoldItalic");
+				fontItalic = FontUtils.getDefaultfonts().get("fontItalic");
+			}
+		}
 	}
 
 	/**
@@ -110,7 +194,7 @@ public class Paragraph {
 	 * 
 	 * @param text The text content
 	 * @param fontSet The FontSet containing all font variants
-	 * @param fontStyle The style to use from the FontSet
+	 * @param fontStyle The style to use from the FontSet (determines primary font)
 	 * @param fontSize The font size
 	 * @param width The paragraph width
 	 * @param align The horizontal alignment
@@ -124,16 +208,32 @@ public class Paragraph {
 			WrappingFunction wrappingFunction, float lineSpacing) {
 		this.color = color;
 		this.text = text;
-		this.font = fontSet.getFont(fontStyle);
-		this.fontBold = fontSet.getBold();
-		this.fontItalic = fontSet.getItalic();
-		this.fontBoldItalic = fontSet.getBoldItalic();
 		this.fontSize = fontSize;
 		this.width = width;
 		this.textType = textType;
 		this.setAlign(align);
 		this.wrappingFunction = wrappingFunction;
 		this.lineSpacing = lineSpacing;
+
+		// Extract all fonts from FontSet and set the primary font based on style
+		if (fontSet != null) {
+			this.font = fontSet.getFont(fontStyle);
+			this.fontBold = fontSet.getBold();
+			this.fontItalic = fontSet.getItalic();
+			this.fontBoldItalic = fontSet.getBoldItalic();
+		} else {
+			// Fallback when no FontSet is provided
+			this.font = null;
+			if (FontUtils.getDefaultfonts().isEmpty()) {
+				fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+				fontItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+				fontBoldItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
+			} else {
+				fontBold = FontUtils.getDefaultfonts().get("fontBold");
+				fontBoldItalic = FontUtils.getDefaultfonts().get("fontBoldItalic");
+				fontItalic = FontUtils.getDefaultfonts().get("fontItalic");
+			}
+		}
 	}
 
 	public List<String> getLines() {
