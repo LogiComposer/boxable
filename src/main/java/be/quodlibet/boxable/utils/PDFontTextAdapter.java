@@ -3,6 +3,8 @@ package be.quodlibet.boxable.utils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.slf4j.Logger;
@@ -23,6 +25,15 @@ public class PDFontTextAdapter {
     private final PDFont font;
     public static final String REPLACEMENT_CHARACTER = "|?|";
     private static final String ELLIPSIS = "...";
+    
+    // Cache for character validation results to avoid repeated font.getStringWidth() calls
+    private final Map<Integer, Boolean> characterDisplayCache = new ConcurrentHashMap<>();
+    
+    // Cache for string width calculations to avoid repeated calculations
+    private final Map<String, Float> stringWidthCache = new ConcurrentHashMap<>();
+    
+    // Pre-computed character strings to avoid repeated String creation
+    private final Map<Integer, String> characterStringCache = new ConcurrentHashMap<>();
     
     /**
      * <p>
@@ -78,26 +89,56 @@ public class PDFontTextAdapter {
     /**
      * <p>
      * Validates if the font can display a specific character.
+     * Results are cached to improve performance for repeated character checks.
      * </p>
      * 
      * @param codePoint The Unicode code point to check
      * @return true if the font can display the character, false otherwise
      */
     public boolean canDisplayCharacter(int codePoint) {
+        // Check cache first
+        Boolean cachedResult = characterDisplayCache.get(codePoint);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+        
         try {
-            String character = new String(Character.toChars(codePoint));
+            // Get or create the character string, caching it to avoid repeated object creation
+            String character = getCharacterString(codePoint);
+            
+            // Test if font can display the character by attempting to get its width
             font.getStringWidth(character);
+            
+            // Cache successful result
+            characterDisplayCache.put(codePoint, true);
             return true;
         } catch (IOException | IllegalArgumentException e) {
             // Font cannot display this character
             logger.debug("Font {} cannot display character with code point {}", font.getName(), codePoint);
+            
+            // Cache failed result
+            characterDisplayCache.put(codePoint, false);
             return false;
         }
     }
     
     /**
      * <p>
+     * Gets the string representation of a character code point, using caching to avoid 
+     * repeated String object creation for the same characters.
+     * </p>
+     * 
+     * @param codePoint The Unicode code point
+     * @return The string representation of the character
+     */
+    private String getCharacterString(int codePoint) {
+        return characterStringCache.computeIfAbsent(codePoint, cp -> new String(Character.toChars(cp)));
+    }
+    
+    /**
+     * <p>
      * Returns the width of a string at the given font size.
+     * Results are cached to improve performance for repeated calculations.
      * </p>
      * 
      * @param text The text to measure
@@ -108,8 +149,23 @@ public class PDFontTextAdapter {
         if (text == null || text.isEmpty()) {
             return 0.0f;
         }
-        text = sanitizeText(text);        
-        return FontUtils.getStringWidth(font, text, fontSize);
+        
+        String sanitizedText = sanitizeText(text);
+        
+        // Create cache key that includes both text and font size for accurate caching
+        String cacheKey = sanitizedText + "|" + fontSize;
+        
+        // Check cache first
+        Float cachedWidth = stringWidthCache.get(cacheKey);
+        if (cachedWidth != null) {
+            return cachedWidth;
+        }
+        
+        // Calculate and cache the result
+        float width = FontUtils.getStringWidth(font, sanitizedText, fontSize);
+        stringWidthCache.put(cacheKey, width);
+        
+        return width;
     }
     
     /**
@@ -244,5 +300,53 @@ public class PDFontTextAdapter {
      */
     public PDFont getFont() {
         return font;
+    }
+    
+    /**
+     * <p>
+     * Clears all caches to free memory. This can be useful when processing large amounts
+     * of text or when memory usage becomes a concern.
+     * </p>
+     */
+    public void clearCaches() {
+        characterDisplayCache.clear();
+        stringWidthCache.clear();
+        characterStringCache.clear();
+    }
+    
+    /**
+     * <p>
+     * Returns the current size of the character display cache.
+     * Useful for monitoring cache performance and memory usage.
+     * </p>
+     * 
+     * @return The number of cached character display results
+     */
+    public int getCharacterDisplayCacheSize() {
+        return characterDisplayCache.size();
+    }
+    
+    /**
+     * <p>
+     * Returns the current size of the string width cache.
+     * Useful for monitoring cache performance and memory usage.
+     * </p>
+     * 
+     * @return The number of cached string width results
+     */
+    public int getStringWidthCacheSize() {
+        return stringWidthCache.size();
+    }
+    
+    /**
+     * <p>
+     * Returns the current size of the character string cache.
+     * Useful for monitoring cache performance and memory usage.
+     * </p>
+     * 
+     * @return The number of cached character string objects
+     */
+    public int getCharacterStringCacheSize() {
+        return characterStringCache.size();
     }
 }

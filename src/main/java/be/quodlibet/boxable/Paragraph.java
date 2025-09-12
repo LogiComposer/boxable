@@ -23,6 +23,7 @@ import be.quodlibet.boxable.text.TokenType;
 import be.quodlibet.boxable.text.Tokenizer;
 import be.quodlibet.boxable.text.WrappingFunction;
 import be.quodlibet.boxable.utils.FontUtils;
+import be.quodlibet.boxable.utils.PDFontTextAdapter;
 import be.quodlibet.boxable.utils.PDStreamUtils;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
@@ -52,6 +53,12 @@ public class Paragraph {
 	private List<Token> tokens;
 	private List<String> lines;
 	private Float spaceWidth;
+	
+	// Cached PDFontTextAdapters for performance optimization
+	private PDFontTextAdapter fontTextAdapter;
+	private PDFontTextAdapter boldFontTextAdapter;
+	private PDFontTextAdapter italicFontTextAdapter;
+	private PDFontTextAdapter boldItalicFontTextAdapter;
 
 	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align) {
 		this(text, font, fontSize, width, align, null);
@@ -350,7 +357,12 @@ public class Paragraph {
 							stack.add(new HTMLListNode(orderListElement, orderingNumber));
 							try {
 								float tab = indentLevel(DEFAULT_TAB);
-								float orderingNumberAndTab = font.getStringWidth(orderingNumber) + tab;
+								// Use PDFontTextAdapter for optimized string width calculation
+								PDFontTextAdapter adapter = getFontTextAdapter(font);
+								float orderingNumberWidth = (adapter != null) ? 
+									adapter.getStringWidth(orderingNumber, 1000f) :
+									font.getStringWidth(orderingNumber);
+								float orderingNumberAndTab = orderingNumberWidth + tab;
 								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING, String
 										.valueOf(orderingNumberAndTab / 1000 * getFontSize())));
 							} catch (IOException e) {
@@ -575,10 +587,17 @@ public class Paragraph {
 						StringBuilder restOfTheWord = new StringBuilder();
 						for (int i = 0; i < lastTextToken.length(); i++) {
 							char c = lastTextToken.charAt(i);
-							try {
-								width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
-							} catch (IOException e) {
-								e.printStackTrace();
+							// Use PDFontTextAdapter for optimized character width calculation
+							PDFontTextAdapter adapter = getFontTextAdapter(currentFont);
+							if (adapter != null) {
+								width += adapter.getStringWidth(String.valueOf(c), fontSize);
+							} else {
+								// Fallback for null adapter
+								try {
+									width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
 							}
 							if(alreadyTextInLine){
 								if (width < this.width - textInLine.trimmedWidth()) {
@@ -686,6 +705,47 @@ public class Paragraph {
 			return fontItalic;
 		} else {
 			return font;
+		}
+	}
+	
+	/**
+	 * <p>
+	 * Gets or creates a cached PDFontTextAdapter for the specified font.
+	 * This provides optimized text processing with caching for repeated operations.
+	 * </p>
+	 * 
+	 * @param font The font to get an adapter for
+	 * @return A PDFontTextAdapter wrapping the specified font
+	 */
+	private PDFontTextAdapter getFontTextAdapter(PDFont font) {
+		if (font == null) {
+			return null;
+		}
+		
+		// Determine which cached adapter to use based on the font
+		if (font.equals(this.font)) {
+			if (fontTextAdapter == null) {
+				fontTextAdapter = new PDFontTextAdapter(font);
+			}
+			return fontTextAdapter;
+		} else if (font.equals(fontBold)) {
+			if (boldFontTextAdapter == null) {
+				boldFontTextAdapter = new PDFontTextAdapter(font);
+			}
+			return boldFontTextAdapter;
+		} else if (font.equals(fontItalic)) {
+			if (italicFontTextAdapter == null) {
+				italicFontTextAdapter = new PDFontTextAdapter(font);
+			}
+			return italicFontTextAdapter;
+		} else if (font.equals(fontBoldItalic)) {
+			if (boldItalicFontTextAdapter == null) {
+				boldItalicFontTextAdapter = new PDFontTextAdapter(font);
+			}
+			return boldItalicFontTextAdapter;
+		} else {
+			// For any other font, create a new adapter (don't cache unknown fonts)
+			return new PDFontTextAdapter(font);
 		}
 	}
 
@@ -826,11 +886,19 @@ public class Paragraph {
 	}
 
 	private float getHorizontalFreeSpace(final String text) {
-		try {
-			final float tw = font.getStringWidth(text.trim()) / 1000 * fontSize;
+		// Use PDFontTextAdapter for optimized string width calculation
+		PDFontTextAdapter adapter = getFontTextAdapter(font);
+		if (adapter != null) {
+			final float tw = adapter.getStringWidth(text.trim(), fontSize);
 			return width - tw;
-		} catch (IOException e) {
-			throw new IllegalStateException("Unable to calculate text width", e);
+		} else {
+			// Fallback for null adapter
+			try {
+				final float tw = font.getStringWidth(text.trim()) / 1000 * fontSize;
+				return width - tw;
+			} catch (IOException e) {
+				throw new IllegalStateException("Unable to calculate text width", e);
+			}
 		}
 	}
 

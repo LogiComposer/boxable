@@ -19,6 +19,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import be.quodlibet.boxable.line.LineStyle;
 import be.quodlibet.boxable.text.WrappingFunction;
 import be.quodlibet.boxable.utils.FontUtils;
+import be.quodlibet.boxable.utils.PDFontTextAdapter;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 public class Cell<T extends PDPage> {
@@ -67,6 +68,9 @@ public class Cell<T extends PDPage> {
 	boolean isTextUnderline = false;
 
 	private final List<CellContentDrawnListener<T>> contentDrawnListenerList = new ArrayList<CellContentDrawnListener<T>>();
+	
+	// Cached PDFontTextAdapter for performance optimization
+	private PDFontTextAdapter fontTextAdapter;
 
 	/**
 	 * <p>
@@ -284,6 +288,9 @@ public class Cell<T extends PDPage> {
 
 		// paragraph invalidated
 		paragraph = null;
+		
+		// invalidate font adapter cache since font changed
+		fontTextAdapter = null;
 	}
 
 	/**
@@ -310,6 +317,9 @@ public class Cell<T extends PDPage> {
 
 		// paragraph invalidated
 		paragraph = null;
+		
+		// invalidate font adapter cache since font size affects calculations
+		fontTextAdapter = null;
 	}
 
 	/**
@@ -381,6 +391,25 @@ public class Cell<T extends PDPage> {
 			}
 		}
 	}
+	
+	/**
+	 * <p>
+	 * Gets or creates a cached PDFontTextAdapter for this cell's current font.
+	 * This provides optimized text processing with caching for repeated operations.
+	 * </p>
+	 * 
+	 * @return A PDFontTextAdapter wrapping the cell's current effective font
+	 */
+	private PDFontTextAdapter getFontTextAdapter() {
+		PDFont currentFont = getEffectiveFont();
+		
+		// Create or recreate adapter if font has changed
+		if (fontTextAdapter == null || !fontTextAdapter.getFont().equals(currentFont)) {
+			fontTextAdapter = new PDFontTextAdapter(currentFont);
+		}
+		
+		return fontTextAdapter;
+	}
 
 	public float getExtraWidth() {
 		return this.row.getLastCellExtraWidth() + getWidth();
@@ -423,14 +452,10 @@ public class Cell<T extends PDPage> {
 		}
 
 		if (isTextRotated()) {
-			try {
-				// TODO: maybe find more optimal way then this
-				return getFont().getStringWidth(getText()) / 1000 * getFontSize() + getTopPadding()
-						+ (getTopBorder() == null ? 0 : getTopBorder().getWidth()) + getBottomPadding()
-						+ (getBottomBorder() == null ? 0 : getBottomBorder().getWidth());
-			} catch (final IOException e) {
-				throw new IllegalStateException("Font not set.", e);
-			}
+			// Use PDFontTextAdapter for optimized string width calculation
+			return getFontTextAdapter().getStringWidth(getText(), getFontSize()) + getTopPadding()
+					+ (getTopBorder() == null ? 0 : getTopBorder().getWidth()) + getBottomPadding()
+					+ (getBottomBorder() == null ? 0 : getBottomBorder().getWidth());
 		} else {
 			return getTextHeight() + getTopPadding() + getBottomPadding()
 					+ (getTopBorder() == null ? 0 : getTopBorder().getWidth())
