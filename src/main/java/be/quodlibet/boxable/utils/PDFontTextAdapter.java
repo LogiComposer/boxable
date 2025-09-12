@@ -27,21 +27,7 @@ public class PDFontTextAdapter {
     // Cache instance for all font text operations
     private final FontTextCache cache;
     
-    /**
-     * <p>
-     * Creates a new PDFontTextAdapter wrapping the specified PDFont.
-     * This constructor creates its own FontTextCache instance for backward compatibility.
-     * </p>
-     * 
-     * @param font The PDFont to wrap for text operations
-     * @throws IllegalArgumentException if font is null
-     * @deprecated Use {@link #PDFontTextAdapter(PDFont, FontTextCache)} for better performance
-     */
-    @Deprecated
-    public PDFontTextAdapter(PDFont font) {
-        this(font, new FontTextCache());
-    }
-    
+       
     /**
      * <p>
      * Creates a new PDFontTextAdapter wrapping the specified PDFont with a shared cache.
