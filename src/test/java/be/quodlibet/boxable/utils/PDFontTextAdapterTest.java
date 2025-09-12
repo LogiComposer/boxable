@@ -1,5 +1,6 @@
 package be.quodlibet.boxable.utils;
 
+import static be.quodlibet.boxable.utils.PDFontTextAdapter.REPLACEMENT_CHARACTER;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
@@ -325,5 +326,19 @@ public class PDFontTextAdapterTest {
         // Test with zero width for wrapping
         List<String> wrapped = type1Adapter.wrapText(text, 0f, 12f);
         assertTrue(wrapped.isEmpty() || wrapped.get(0).equals("..."));
+    }
+
+    @Test
+    public void testSanitizeTextWithEmojiCharacters() {
+        // Test with a string containing emojis
+        String input = "Hello 😆😆 World"; // Contains emoji characters
+        String result = type1Adapter.sanitizeText(input);
+
+        // Result should contain replacement character where unsupported chars were
+        assertNotNull(result);
+        assertTrue(result.contains("Hello"));
+        assertTrue(result.contains("World"));
+        assertTrue(result.contains(REPLACEMENT_CHARACTER)); // Ensure unsupported emojis are replaced
+        assertFalse(result.contains("😆"));  // Original emojis should not be present
     }
 }
