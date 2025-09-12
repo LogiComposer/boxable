@@ -120,13 +120,17 @@ public class Cell<T extends PDPage> {
 			throw new IllegalArgumentException(
 					"Cell Width=" + getWidth() + " can't be bigger than row width=" + row.getWidth());
 		}
-		//check if we have new default font
-		if(!FontUtils.getDefaultfonts().isEmpty()){
-			font = FontUtils.getDefaultfonts().get("font");
-			fontBold = FontUtils.getDefaultfonts().get("fontBold");
-		}else {
-			font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-			fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+		// Attempt to retrieve fontSet from the row's table
+		FontSet fontSet = row.getTable().getFontSet();
+		if (fontSet != null) {
+			font = fontSet.getRegular();
+			fontBold = fontSet.getBold();
+		} else {
+			// Fallback to default or predefined fonts
+			font = FontUtils.getDefaultfonts()
+					.getOrDefault("font", new PDType1Font(Standard14Fonts.FontName.HELVETICA));
+			fontBold = FontUtils.getDefaultfonts()
+					.getOrDefault("fontBold", new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD));
 		}
 
 		// default border
