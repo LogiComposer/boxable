@@ -6,6 +6,7 @@ package be.quodlibet.boxable;
 
 import be.quodlibet.boxable.line.LineStyle;
 import be.quodlibet.boxable.page.PageProvider;
+import be.quodlibet.boxable.page.SsrPageProvider;
 import be.quodlibet.boxable.text.Token;
 import be.quodlibet.boxable.text.WrappingFunction;
 import be.quodlibet.boxable.utils.FontUtils;
@@ -273,6 +274,16 @@ public abstract class Table<T extends PDPage> {
         }
 
         if (isEndOfPage(rowHeight) && !header.contains(row)) {
+
+            // Add footer if using SsrPageProvider before page break
+            if (pageProvider instanceof SsrPageProvider) {
+                try {
+                    ((SsrPageProvider) pageProvider).appendFooter(currentPage);
+                } catch (ReportException e) {
+                    // Log error but continue processing
+                    System.err.println("Failed to append footer before page break: " + e.getMessage());
+                }
+            }
 
             // Draw line at bottom of table
             endTable();
@@ -736,6 +747,21 @@ public abstract class Table<T extends PDPage> {
         }
         // Set Y position for next row
         yStart = yStart - rowHeight;
+
+        // Add footer if using SsrPageProvider and this might be the last row on the page
+        if (pageProvider instanceof SsrPageProvider && !header.contains(row)) {
+            // Check if the next potential row would cause a page break
+            // We use a conservative estimate for the next row height
+            float estimatedNextRowHeight = 20f; // Conservative estimate
+            if (isEndOfPage(estimatedNextRowHeight)) {
+                try {
+                    ((SsrPageProvider) pageProvider).appendFooter(currentPage);
+                } catch (ReportException e) {
+                    // Log error but continue processing
+                    System.err.println("Failed to append footer after potential last row: " + e.getMessage());
+                }
+            }
+        }
 
     }
 
