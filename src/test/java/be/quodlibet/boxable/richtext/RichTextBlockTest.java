@@ -227,6 +227,113 @@ public class RichTextBlockTest {
     }
 
     @Test
+    public void testInlineImagesWithText() throws IOException {
+        File pngFile = new File(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/150dpi.png")).getFile());
+        File jpgFile = new File(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
+
+        InlineImageSegment pngInline = InlineImageSegment.fromFile(pngFile, 30, 12);
+        InlineImageSegment jpgInline = InlineImageSegment.fromFile(jpgFile, 30, 12);
+
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                // ── 1. Text + image + text (image in the middle) ─────────
+                RichTextLine middleLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Revenue grew by ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        pngInline,
+                        new RichTextSegment(" compared to last quarter.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // ── 2. Image at the start ────────────────────────────────
+                RichTextLine startLine = new RichTextLine(Arrays.asList(
+                        jpgInline,
+                        new RichTextSegment(" This text follows a JPG image at the start.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // ── 3. Image at the end ──────────────────────────────────
+                RichTextLine endLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("This text precedes a PNG image: ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        pngInline
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // ── 4. Multiple images side-by-side with text ────────────
+                RichTextLine sideBySide = new RichTextLine(Arrays.asList(
+                        pngInline,
+                        new RichTextSegment(" between ",
+                                EnumSet.of(TextStyle.BOLD), 10f),
+                        jpgInline,
+                        new RichTextSegment(" and more ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        pngInline
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // ── 5. Image-only line ───────────────────────────────────
+                RichTextLine imageOnly = new RichTextLine(Arrays.asList(
+                        pngInline, jpgInline, pngInline
+                ), ListType.NONE, 0, TextAlignment.CENTER);
+
+                // ── 6. Centered alignment with inline image ──────────────
+                RichTextLine centeredLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Centered: ",
+                                EnumSet.of(TextStyle.ITALIC), 10f),
+                        jpgInline,
+                        new RichTextSegment(" label",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.CENTER);
+
+                // ── 7. Right-aligned with inline image ───────────────────
+                RichTextLine rightLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Right: ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        pngInline,
+                        new RichTextSegment(" end",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.RIGHT);
+
+                // ── 8. Justified with inline images ──────────────────────
+                RichTextLine justifiedLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Justified text with ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        pngInline,
+                        new RichTextSegment(" inline image spread across the full width.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.JUSTIFY);
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(30, 30).size(500, 700)
+                        .header(HeaderFont.HELVETICA, 14,
+                                "Inline Images Demo", TextAlignment.CENTER)
+                        .addContent(new TextContentElement(middleLine))
+                        .addContent(new TextContentElement(startLine))
+                        .addContent(new TextContentElement(endLine))
+                        .addContent(new TextContentElement(sideBySide))
+                        .addContent(new TextContentElement(imageOnly))
+                        .addContent(new TextContentElement(centeredLine))
+                        .addContent(new TextContentElement(rightLine))
+                        .addContent(new TextContentElement(justifiedLine))
+                        .drawBorder(true)
+                        .build();
+
+                block.render(doc, stream, pageSize.getHeight());
+                stream.close();
+            }
+
+            doc.save(new File("target/InlineImageDemo.pdf"));
+        }
+    }
+
+    @Test
     public void testBase64ImageRendering() throws IOException {
         // Convert the PNG and JPG test resources to Base64 strings
         String pngBase64 = resourceToBase64("/150dpi.png");

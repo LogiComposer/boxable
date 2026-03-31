@@ -17,7 +17,7 @@ import java.util.Objects;
  *   "Revenue grew by " (regular)  +  "25%" (bold)  +  " last quarter." (regular)
  * </pre>
  */
-public final class RichTextSegment {
+public final class RichTextSegment implements LineElement {
 
     private final String text;
     private final EnumSet<TextStyle> styles;
@@ -67,8 +67,18 @@ public final class RichTextSegment {
      * @return width in points
      * @throws IOException if font metrics cannot be read
      */
+    @Override
     public float getWidth() throws IOException {
         return WordWrapUtil.textWidth(text, resolveFont(), fontSize);
+    }
+
+    /**
+     * Returns the font size (raw height of the text; line-spacing is applied
+     * by the layout engine).
+     */
+    @Override
+    public float getHeight() {
+        return fontSize;
     }
 }
 

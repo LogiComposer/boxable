@@ -75,8 +75,8 @@ public final class TextContentElement implements ContentElement {
 
         // Approximate the number of visual lines after wrapping
         float totalWidth = 0;
-        for (RichTextSegment seg : line.getSegments()) {
-            totalWidth += seg.getWidth();
+        for (LineElement el : line.getElements()) {
+            totalWidth += el.getWidth();
         }
         int visualLines = Math.max(1, (int) Math.ceil(totalWidth / availableWidth));
         return lineHeight * visualLines;
@@ -101,9 +101,9 @@ public final class TextContentElement implements ContentElement {
             contentWidth -= LIST_INDENT;
         }
 
-        // Word-wrap all segments concatenated, then render line by line
-        List<List<RichTextSegment>> wrappedVisualLines =
-                wrapSegments(line.getSegments(), contentWidth);
+        // Word-wrap all elements (text segments + inline images), then render line by line
+        List<List<LineElement>> wrappedVisualLines =
+                wrapElements(line.getElements(), contentWidth);
 
         AlignmentStrategy strategy = AlignmentStrategyFactory.get(line.getAlignment());
 
@@ -125,84 +125,98 @@ public final class TextContentElement implements ContentElement {
                 ctx.getStream().showText(prefix);
             }
 
-            // Render the visual line segments using the chosen alignment strategy
-            List<RichTextSegment> visualSegments = wrappedVisualLines.get(i);
+            // Render the visual line elements using the chosen alignment strategy
+            List<LineElement> visualElements = wrappedVisualLines.get(i);
 
             // For JUSTIFY: don't justify the last visual line
             if (line.getAlignment() == TextAlignment.JUSTIFY
                     && i == wrappedVisualLines.size() - 1) {
                 AlignmentStrategyFactory.get(TextAlignment.LEFT)
-                        .renderLine(ctx, visualSegments, ctx.getCursorY(),
+                        .renderLine(ctx, visualElements, ctx.getCursorY(),
                                 contentStartX, contentWidth);
             } else {
-                strategy.renderLine(ctx, visualSegments, ctx.getCursorY(),
+                strategy.renderLine(ctx, visualElements, ctx.getCursorY(),
                         contentStartX, contentWidth);
             }
         }
     }
 
     /**
-     * Wraps a list of segments into visual lines that fit within {@code maxWidth}.
-     * Each visual line is itself a list of {@link RichTextSegment}s (potentially
-     * splitting a segment across two visual lines).
+     * Wraps a list of elements into visual lines that fit within {@code maxWidth}.
+     * Each visual line is itself a list of {@link LineElement}s.
      * <p>
-     * Text that exceeds the available width is always pushed to the next line
-     * via word-boundary splitting.  Only genuinely unsplittable words (a single
-     * word wider than the entire line) are force-placed.
+     * Text segments are split at word boundaries when they exceed the available width.
+     * Inline images are treated as atomic, unsplittable units — if an image does not
+     * fit on the current line it is pushed to the next line.
      * </p>
      */
-    private List<List<RichTextSegment>> wrapSegments(List<RichTextSegment> segments,
-                                                      float maxWidth) throws IOException {
-        List<List<RichTextSegment>> visualLines = new ArrayList<>();
-        List<RichTextSegment> currentVisualLine = new ArrayList<>();
+    private List<List<LineElement>> wrapElements(List<LineElement> elements,
+                                                  float maxWidth) throws IOException {
+        List<List<LineElement>> visualLines = new ArrayList<>();
+        List<LineElement> currentVisualLine = new ArrayList<>();
         float currentLineWidth = 0;
 
-        for (RichTextSegment segment : segments) {
-            PDFont font = segment.resolveFont();
-            float fontSize = segment.getFontSize();
-            String remaining = segment.getText();
-
-            while (!remaining.isEmpty()) {
-                float availableWidth = maxWidth - currentLineWidth;
-                float textWidth = WordWrapUtil.textWidth(remaining, font, fontSize);
-
-                if (textWidth <= availableWidth) {
-                    // Entire remaining text fits on the current line
-                    currentVisualLine.add(new RichTextSegment(
-                            remaining, segment.getStyles(), fontSize, segment.getColor()));
-                    currentLineWidth += textWidth;
-                    remaining = "";
+        for (LineElement element : elements) {
+            if (element instanceof InlineImageSegment) {
+                // Inline images are atomic — cannot be split
+                float imgWidth = element.getWidth();
+                if (imgWidth <= maxWidth - currentLineWidth) {
+                    // Fits on current line
+                    currentVisualLine.add(element);
+                    currentLineWidth += imgWidth;
+                } else if (currentLineWidth > 0) {
+                    // Doesn't fit — flush current line and place on new line
+                    visualLines.add(currentVisualLine);
+                    currentVisualLine = new ArrayList<>();
+                    currentVisualLine.add(element);
+                    currentLineWidth = imgWidth;
                 } else {
-                    // Text does not fit — attempt to split at a word boundary
-                    String[] split = splitAtWidth(remaining, font, fontSize, availableWidth);
+                    // Fresh line but image is wider than maxWidth — force-place it
+                    currentVisualLine.add(element);
+                    visualLines.add(currentVisualLine);
+                    currentVisualLine = new ArrayList<>();
+                    currentLineWidth = 0;
+                }
+            } else if (element instanceof RichTextSegment) {
+                RichTextSegment segment = (RichTextSegment) element;
+                PDFont font = segment.resolveFont();
+                float fontSize = segment.getFontSize();
+                String remaining = segment.getText();
 
-                    if (!split[0].isEmpty()) {
-                        // Part of the text fits on the current line
+                while (!remaining.isEmpty()) {
+                    float availableWidth = maxWidth - currentLineWidth;
+                    float textWidth = WordWrapUtil.textWidth(remaining, font, fontSize);
+
+                    if (textWidth <= availableWidth) {
+                        // Entire remaining text fits on the current line
                         currentVisualLine.add(new RichTextSegment(
-                                split[0], segment.getStyles(), fontSize, segment.getColor()));
-                        // Flush current visual line
-                        visualLines.add(currentVisualLine);
-                        currentVisualLine = new ArrayList<>();
-                        currentLineWidth = 0;
-                        remaining = split[1];
-                    } else if (currentLineWidth > 0) {
-                        // Nothing fits but the line already has content —
-                        // flush the current line and retry with a full-width line
-                        visualLines.add(currentVisualLine);
-                        currentVisualLine = new ArrayList<>();
-                        currentLineWidth = 0;
-                        // 'remaining' stays the same; next iteration gets full maxWidth
+                                remaining, segment.getStyles(), fontSize, segment.getColor()));
+                        currentLineWidth += textWidth;
+                        remaining = "";
                     } else {
-                        // Start of a fresh line and the first word is wider than
-                        // maxWidth — force-place it to avoid an infinite loop,
-                        // then continue with the remainder on a new line
-                        String[] forced = forceBreak(remaining, font, fontSize, maxWidth);
-                        currentVisualLine.add(new RichTextSegment(
-                                forced[0], segment.getStyles(), fontSize, segment.getColor()));
-                        visualLines.add(currentVisualLine);
-                        currentVisualLine = new ArrayList<>();
-                        currentLineWidth = 0;
-                        remaining = forced[1];
+                        // Text does not fit — attempt to split at a word boundary
+                        String[] split = splitAtWidth(remaining, font, fontSize, availableWidth);
+
+                        if (!split[0].isEmpty()) {
+                            currentVisualLine.add(new RichTextSegment(
+                                    split[0], segment.getStyles(), fontSize, segment.getColor()));
+                            visualLines.add(currentVisualLine);
+                            currentVisualLine = new ArrayList<>();
+                            currentLineWidth = 0;
+                            remaining = split[1];
+                        } else if (currentLineWidth > 0) {
+                            visualLines.add(currentVisualLine);
+                            currentVisualLine = new ArrayList<>();
+                            currentLineWidth = 0;
+                        } else {
+                            String[] forced = forceBreak(remaining, font, fontSize, maxWidth);
+                            currentVisualLine.add(new RichTextSegment(
+                                    forced[0], segment.getStyles(), fontSize, segment.getColor()));
+                            visualLines.add(currentVisualLine);
+                            currentVisualLine = new ArrayList<>();
+                            currentLineWidth = 0;
+                            remaining = forced[1];
+                        }
                     }
                 }
             }

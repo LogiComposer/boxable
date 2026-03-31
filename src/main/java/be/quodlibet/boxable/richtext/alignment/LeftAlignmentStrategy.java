@@ -1,13 +1,13 @@
 package be.quodlibet.boxable.richtext.alignment;
 
+import be.quodlibet.boxable.richtext.LineElement;
 import be.quodlibet.boxable.richtext.RenderContext;
-import be.quodlibet.boxable.richtext.RichTextSegment;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
- * Left-aligned rendering — segments are placed sequentially starting at
+ * Left-aligned rendering — elements are placed sequentially starting at
  * {@code contentStartX}.
  */
 public final class LeftAlignmentStrategy implements AlignmentStrategy {
@@ -17,13 +17,12 @@ public final class LeftAlignmentStrategy implements AlignmentStrategy {
     private LeftAlignmentStrategy() {}
 
     @Override
-    public void renderLine(RenderContext ctx, List<RichTextSegment> segments,
+    public void renderLine(RenderContext ctx, List<LineElement> elements,
                            float y, float contentStartX, float contentWidth) throws IOException {
         float x = contentStartX;
-        for (RichTextSegment segment : segments) {
-            float w = SegmentRenderer.renderSegment(ctx, segment, x, y);
+        for (LineElement element : elements) {
+            float w = SegmentRenderer.renderElement(ctx, element, x, y);
             x += w;
         }
     }
 }
-
