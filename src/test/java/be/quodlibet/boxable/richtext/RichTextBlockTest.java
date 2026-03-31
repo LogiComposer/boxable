@@ -7,14 +7,16 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.junit.Test;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 
 public class RichTextBlockTest {
 
@@ -108,7 +110,7 @@ public class RichTextBlockTest {
         }
     }
 
-    private RichTextBlock buildMainBlock() {
+    private RichTextBlock buildMainBlock() throws IOException {
         RichTextLine paragraph = new RichTextLine(Arrays.asList(
                 new RichTextSegment("Revenue grew by ", EnumSet.noneOf(TextStyle.class), 10f),
                 new RichTextSegment("25%", EnumSet.of(TextStyle.BOLD), 10f),
@@ -148,7 +150,13 @@ public class RichTextBlockTest {
                                 EnumSet.of(TextStyle.BOLD, TextStyle.UNDERLINE), 9f)),
                         ListType.NONE, 0));
 
-        BufferedImage testImg = createTestImage(300, 80, Color.BLUE);
+        // Load JPG image from file
+        File jpgFile = new File(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
+
+        // Load PNG image from InputStream
+        InputStream pngStream = Objects.requireNonNull(
+                RichTextBlockTest.class.getResourceAsStream("/150dpi.png"));
 
         return RichTextBlock.builder()
                 .at(30, 30).size(370, 500)
@@ -157,9 +165,12 @@ public class RichTextBlockTest {
                 .addContent(new TextContentElement(paragraph))
                 .addContent(new TextContentElement(subtitle))
                 .addContent(new TextContentElement(dateLine))
-                .addContent(new ImageContentElement.Builder(testImg)
+                .addContent(new ImageContentElement.Builder(jpgFile)
                         .size(200, 60).alignment(TextAlignment.CENTER)
-                        .cacheKey("blue-gradient").build())
+                        .cacheKey("jpg-app-dev").build())
+                .addContent(new ImageContentElement.Builder(pngStream)
+                        .size(200, 60).alignment(TextAlignment.CENTER)
+                        .cacheKey("png-150dpi").build())
                 .addContent(new ListContentElement(ListType.BULLETED, bullets))
                 .addContent(new ListContentElement(ListType.NUMBERED, numbered))
                 .showOverflowIndicator(true)
@@ -215,16 +226,68 @@ public class RichTextBlockTest {
         return builder.build();
     }
 
-    private BufferedImage createTestImage(int w, int h, Color base) {
-        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = img.createGraphics();
-        g.setPaint(new GradientPaint(0, 0, base.brighter(), w, h, base.darker()));
-        g.fillRect(0, 0, w, h);
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("SansSerif", Font.BOLD, 14));
-        g.drawString("Test Image", 10, h / 2 + 5);
-        g.dispose();
-        return img;
+    @Test
+    public void testBase64ImageRendering() throws IOException {
+        // Convert the PNG and JPG test resources to Base64 strings
+        String pngBase64 = resourceToBase64("/150dpi.png");
+        String jpgBase64DataUri = "data:image/jpeg;base64,"
+                + resourceToBase64("/app_development.jpg");
+
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                RichTextLine intro = new RichTextLine(Collections.singletonList(
+                        new RichTextSegment(
+                                "The images below are loaded from Base64-encoded strings.",
+                                EnumSet.noneOf(TextStyle.class), 10f)),
+                        ListType.NONE, 0, TextAlignment.LEFT);
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(30, 30).size(500, 700)
+                        .header(HeaderFont.HELVETICA, 14,
+                                "Base64 Image Demo", TextAlignment.CENTER)
+                        .addContent(new TextContentElement(intro))
+                        // Raw Base64 PNG
+                        .addContent(ImageContentElement.Builder.fromBase64(pngBase64)
+                                .size(200, 60).alignment(TextAlignment.CENTER)
+                                .cacheKey("b64-png").build())
+                        // Data-URI Base64 JPG
+                        .addContent(ImageContentElement.Builder.fromBase64(jpgBase64DataUri)
+                                .size(200, 60).alignment(TextAlignment.CENTER)
+                                .cacheKey("b64-jpg").build())
+                        .drawBorder(true)
+                        .build();
+
+                block.render(doc, stream, pageSize.getHeight());
+                stream.close();
+            }
+
+            doc.save(new File("target/Base64ImageDemo.pdf"));
+        }
     }
+
+    /**
+     * Reads a classpath resource and returns its content as a Base64-encoded string.
+     */
+    private String resourceToBase64(String resourcePath) throws IOException {
+        try (InputStream is = Objects.requireNonNull(
+                RichTextBlockTest.class.getResourceAsStream(resourcePath),
+                "Resource not found: " + resourcePath)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = is.read(buf)) != -1) {
+                baos.write(buf, 0, n);
+            }
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
+        }
+    }
+
 }
+
 

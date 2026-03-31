@@ -3,8 +3,13 @@ package be.quodlibet.boxable.richtext;
 import be.quodlibet.boxable.utils.ImageUtils;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
 import java.util.Objects;
 
 /**
@@ -143,6 +148,72 @@ public final class ImageContentElement implements ContentElement {
             this.requestedWidth = sourceImage.getWidth();
             this.requestedHeight = sourceImage.getHeight();
             this.cacheKey = "img-" + System.identityHashCode(sourceImage);
+        }
+
+        /**
+         * Creates a Builder from an image file (supports any format that {@link ImageIO}
+         * can read, including PNG and JPEG/JPG).
+         *
+         * @param imageFile the image file to load
+         * @throws IOException if reading the file fails
+         */
+        public Builder(File imageFile) throws IOException {
+            Objects.requireNonNull(imageFile, "imageFile");
+            this.sourceImage = ImageIO.read(imageFile);
+            if (this.sourceImage == null) {
+                throw new IOException("Unsupported or unreadable image format: " + imageFile);
+            }
+            this.requestedWidth = sourceImage.getWidth();
+            this.requestedHeight = sourceImage.getHeight();
+            this.cacheKey = "file-" + imageFile.getAbsolutePath();
+        }
+
+        /**
+         * Creates a Builder from an {@link InputStream} (supports any format that
+         * {@link ImageIO} can read, including PNG and JPEG/JPG).
+         *
+         * @param inputStream the input stream containing image data
+         * @throws IOException if reading the stream fails
+         */
+        public Builder(InputStream inputStream) throws IOException {
+            Objects.requireNonNull(inputStream, "inputStream");
+            this.sourceImage = ImageIO.read(inputStream);
+            if (this.sourceImage == null) {
+                throw new IOException("Unsupported or unreadable image format from InputStream");
+            }
+            this.requestedWidth = sourceImage.getWidth();
+            this.requestedHeight = sourceImage.getHeight();
+            this.cacheKey = "img-" + System.identityHashCode(sourceImage);
+        }
+
+        /**
+         * Creates a Builder from a Base64-encoded image string.
+         * Supports both raw Base64 and data-URI format
+         * (e.g., {@code "data:image/png;base64,iVBOR..."} or
+         * {@code "data:image/jpeg;base64,/9j/4AAQ..."}).
+         * <p>
+         * Any image format supported by {@link ImageIO} (PNG, JPEG, etc.) can be used.
+         * </p>
+         *
+         * @param base64 the Base64-encoded image string
+         * @throws IOException if decoding or reading the image fails
+         */
+        public static Builder fromBase64(String base64) throws IOException {
+            Objects.requireNonNull(base64, "base64");
+            String rawBase64 = base64;
+            // Strip optional data-URI prefix (e.g., "data:image/png;base64,")
+            int commaIndex = base64.indexOf(',');
+            if (commaIndex >= 0 && base64.substring(0, commaIndex).contains("base64")) {
+                rawBase64 = base64.substring(commaIndex + 1);
+            }
+            byte[] bytes = Base64.getDecoder().decode(rawBase64);
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
+            if (img == null) {
+                throw new IOException("Unsupported or unreadable image format from Base64 string");
+            }
+            Builder builder = new Builder(img);
+            builder.cacheKey = "base64-" + base64.hashCode();
+            return builder;
         }
 
         /** Sets a custom cache key (e.g., file path). */

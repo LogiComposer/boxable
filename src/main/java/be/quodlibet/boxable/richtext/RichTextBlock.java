@@ -31,6 +31,8 @@ import java.util.List;
  *         .build();
  *
  * block.render(document, contentStream, pageHeight);
+ * // finalY is the PDF Y-coordinate where content ended — use it to
+ * // position the next element below this block.
  * }</pre>
  *
  * <h3>Design</h3>
@@ -94,9 +96,12 @@ public final class RichTextBlock {
      * @param stream     the optimized content stream for the target page
      * @param pageHeight the height of the current page in points (needed for
      *                   coordinate conversion from logical top-down to PDF bottom-up)
+     * @return the final cursor Y-position (in PDF bottom-up coordinates) after
+     *         rendering completes; callers can use this to position subsequent
+     *         elements below this block
      * @throws IOException if writing to the stream fails
      */
-    public void render(PDDocument document, PageContentStreamOptimized stream,
+    public float render(PDDocument document, PageContentStreamOptimized stream,
                        float pageHeight) throws IOException {
 
         // Convert logical (top-down) coordinates to PDF (bottom-up)
@@ -130,6 +135,8 @@ public final class RichTextBlock {
 
         // Ensure text mode is closed
         stream.endText();
+
+        return ctx.getCursorY();
     }
 
     /**
@@ -139,9 +146,11 @@ public final class RichTextBlock {
      * @param document  the PDF document
      * @param pageSize  the page rectangle (e.g., {@code PDRectangle.LETTER})
      * @param landscape whether to use landscape orientation
+     * @return the final cursor Y-position (in PDF bottom-up coordinates) after
+     *         rendering completes
      * @throws IOException if writing fails
      */
-    public void renderOnNewPage(PDDocument document, PDRectangle pageSize,
+    public float renderOnNewPage(PDDocument document, PDRectangle pageSize,
                                 boolean landscape) throws IOException {
         PDRectangle effective = landscape
                 ? new PDRectangle(pageSize.getHeight(), pageSize.getWidth())
@@ -151,8 +160,9 @@ public final class RichTextBlock {
 
         try (PDPageContentStream raw = new PDPageContentStream(document, page)) {
             PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
-            render(document, stream, effective.getHeight());
+            float finalY = render(document, stream, effective.getHeight());
             stream.close();
+            return finalY;
         }
     }
 
