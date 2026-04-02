@@ -62,6 +62,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock narrowBlock = RichTextBlock.builder()
                         .at(30, 30).size(150, 400)
+                        .blockPadding(8f)
                         .header(HeaderFont.HELVETICA, 11, "Narrow Block", TextAlignment.CENTER)
                         .addContent(new TextContentElement(longLine))
                         .drawBorder(true)
@@ -81,6 +82,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock mixedBlock = RichTextBlock.builder()
                         .at(200, 30).size(180, 400)
+                        .blockPadding(2f)
                         .header(HeaderFont.TIMES_ROMAN, 11, "Mixed Styles", TextAlignment.CENTER)
                         .addContent(new TextContentElement(mixedLine))
                         .drawBorder(true)
@@ -97,6 +99,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock longWordBlock = RichTextBlock.builder()
                         .at(400, 30).size(160, 400)
+                        .blockPadding(0f)
                         .header(HeaderFont.COURIER, 9, "Long Word Break", TextAlignment.CENTER)
                         .addContent(new TextContentElement(longWordLine))
                         .drawBorder(true)
@@ -160,6 +163,7 @@ public class RichTextBlockTest {
 
         return RichTextBlock.builder()
                 .at(30, 30).size(370, 500)
+                .blockPadding(6f)
                 .header(HeaderFont.TIMES_ROMAN, 16, "Quarterly Report Summary",
                         TextAlignment.CENTER)
                 .addContent(new TextContentElement(paragraph))
@@ -194,6 +198,7 @@ public class RichTextBlockTest {
 
         return RichTextBlock.builder()
                 .at(420, 30).size(340, 500)
+                .blockPadding(10f)
                 .header(HeaderFont.COURIER, 12, "Side Notes", TextAlignment.LEFT)
                 .addContent(new TextContentElement(justifiedParagraph))
                 .addContent(new TextContentElement(note))
@@ -205,6 +210,7 @@ public class RichTextBlockTest {
     private RichTextBlock buildOverflowBlock() {
         RichTextBlock.Builder builder = RichTextBlock.builder()
                 .at(50, 50).size(495, 200)
+                .blockPadding(3f)
                 .header(HeaderFont.HELVETICA, 14, "Overflow Demonstration",
                         TextAlignment.CENTER)
                 .showOverflowIndicator(true)
@@ -312,6 +318,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(30, 30).size(500, 700)
+                        .blockPadding(6f)
                         .header(HeaderFont.HELVETICA, 14,
                                 "Inline Images Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(middleLine))
@@ -356,6 +363,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(30, 30).size(500, 700)
+                        .blockPadding(9f)
                         .header(HeaderFont.HELVETICA, 14,
                                 "Base64 Image Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(intro))
@@ -435,6 +443,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 750)
+                        .blockPadding(12f)
                         .header(HeaderFont.HELVETICA, 14,
                                 "Multi-Paragraph Alignment Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(leftPara))
@@ -514,6 +523,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 700)
+                        .blockPadding(5f)
                         .header(HeaderFont.HELVETICA, 14,
                                 "Mixed Formatting Combinations", TextAlignment.LEFT)
                         .addContent(new TextContentElement(boldItalic))
@@ -615,6 +625,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 700)
+                        .blockPadding(15f)
                         .addContent(h1)
                         .addContent(new TextContentElement(bodyLine1))
                         .addContent(h2)
@@ -658,6 +669,7 @@ public class RichTextBlockTest {
                 // Block-level header explicitly left-aligned
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 300)
+                        .blockPadding(1f)
                         .header(HeaderFont.HELVETICA, 16,
                                 "Left-Aligned Header With Underline", TextAlignment.LEFT)
                         .addContent(new TextContentElement(body))
@@ -731,6 +743,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 600)
+                        .blockPadding(7f)
                         .header(HeaderFont.HELVETICA, 14,
                                 "Bulleted & Numbered Lists", TextAlignment.LEFT)
                         .addContent(new ListContentElement(ListType.BULLETED, bulletItems))
@@ -974,6 +987,7 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(margin, margin)
                         .size(blockWidth, blockHeight)
+                        .blockPadding(10f)
                         .header(HeaderFont.HELVETICA, 16,
                                 outputName.replace('_', ' ') + " — Landscape Demo",
                                 TextAlignment.CENTER)

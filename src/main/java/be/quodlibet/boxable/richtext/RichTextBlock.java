@@ -46,8 +46,8 @@ import java.util.List;
  */
 public final class RichTextBlock {
 
-    /** Internal padding between the block edge and content (in points). */
-    private static final float BLOCK_PADDING = 4f;
+    /** Default internal padding between the block edge and content (in points). */
+    private static final float DEFAULT_BLOCK_PADDING = 4f;
     private static final float LINE_SPACING = 1.4f;
     private static final float UNDERLINE_THICKNESS = 1.0f;
     private static final float UNDERLINE_OFFSET = -2f;
@@ -57,6 +57,7 @@ public final class RichTextBlock {
     private final float blockY;
     private final float blockWidth;
     private final float blockHeight;
+    private final float blockPadding;
 
     // ── Header ───────────────────────────────────────────────────────────
     private final HeaderFont headerFont;
@@ -76,6 +77,7 @@ public final class RichTextBlock {
         this.blockY = builder.blockY;
         this.blockWidth = builder.blockWidth;
         this.blockHeight = builder.blockHeight;
+        this.blockPadding = builder.blockPadding;
         this.headerFont = builder.headerFont;
         this.headerFontSize = builder.headerFontSize;
         this.headerText = builder.headerText;
@@ -105,10 +107,10 @@ public final class RichTextBlock {
                        float pageHeight) throws IOException {
 
         // Convert logical (top-down) coordinates to PDF (bottom-up)
-        float pdfLeft   = blockX + BLOCK_PADDING;
-        float pdfTop    = pageHeight - blockY - BLOCK_PADDING;
-        float pdfRight  = blockX + blockWidth - BLOCK_PADDING;
-        float pdfBottom = pageHeight - blockY - blockHeight + BLOCK_PADDING;
+        float pdfLeft   = blockX + blockPadding;
+        float pdfTop    = pageHeight - blockY - blockPadding;
+        float pdfRight  = blockX + blockWidth - blockPadding;
+        float pdfBottom = pageHeight - blockY - blockHeight + blockPadding;
 
         RenderContext ctx = new RenderContext(document, stream,
                 pdfLeft, pdfRight, pdfTop, pdfBottom);
@@ -249,10 +251,11 @@ public final class RichTextBlock {
 
     // ── Getters ──────────────────────────────────────────────────────────
 
-    public float getBlockX()      { return blockX; }
-    public float getBlockY()      { return blockY; }
-    public float getBlockWidth()  { return blockWidth; }
-    public float getBlockHeight() { return blockHeight; }
+    public float getBlockX()       { return blockX; }
+    public float getBlockY()       { return blockY; }
+    public float getBlockWidth()   { return blockWidth; }
+    public float getBlockHeight()  { return blockHeight; }
+    public float getBlockPadding() { return blockPadding; }
     public List<ContentElement> getContent() { return content; }
 
     // ════════════════════════���═════════════════════════════════════════════
@@ -274,6 +277,7 @@ public final class RichTextBlock {
         private float blockY;
         private float blockWidth = 400;
         private float blockHeight = 300;
+        private float blockPadding = DEFAULT_BLOCK_PADDING;
         private HeaderFont headerFont = HeaderFont.HELVETICA;
         private float headerFontSize = 14f;
         private String headerText;
@@ -305,6 +309,20 @@ public final class RichTextBlock {
         public Builder size(float width, float height) {
             this.blockWidth = width;
             this.blockHeight = height;
+            return this;
+        }
+
+        /**
+         * Sets the internal padding between the block edge and content.
+         * Defaults to {@value DEFAULT_BLOCK_PADDING} points if not specified.
+         *
+         * @param padding padding in points (must be non-negative)
+         */
+        public Builder blockPadding(float padding) {
+            if (padding < 0) {
+                throw new IllegalArgumentException("Block padding must be non-negative");
+            }
+            this.blockPadding = padding;
             return this;
         }
 
