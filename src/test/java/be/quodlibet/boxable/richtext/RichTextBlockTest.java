@@ -453,6 +453,409 @@ public class RichTextBlockTest {
         }
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    //  Mixed formatting combinations
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Verifies all mixed text style combinations render without error:
+     * BOLD+ITALIC, BOLD+UNDERLINE, ITALIC+UNDERLINE, BOLD+ITALIC+UNDERLINE.
+     */
+    @Test
+    public void testMixedFormattingCombinations() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                // Bold + Italic
+                RichTextLine boldItalic = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Bold-Italic: ",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC), 11f),
+                        new RichTextSegment("This text is both bold and italic.",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC), 11f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Bold + Underline
+                RichTextLine boldUnderline = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Bold-Underline: ",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.UNDERLINE), 11f),
+                        new RichTextSegment("This text is bold with underline.",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.UNDERLINE), 11f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Italic + Underline
+                RichTextLine italicUnderline = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Italic-Underline: ",
+                                EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 11f),
+                        new RichTextSegment("This text is italic with underline.",
+                                EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 11f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Bold + Italic + Underline (all three)
+                RichTextLine allThree = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("All Three: ",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC, TextStyle.UNDERLINE), 11f),
+                        new RichTextSegment("This text has bold, italic and underline combined.",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC, TextStyle.UNDERLINE), 11f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Mixed segments within one line: normal → bold+italic → bold+underline → italic+underline → all
+                RichTextLine mixedLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Normal ", EnumSet.noneOf(TextStyle.class), 10f),
+                        new RichTextSegment("Bold+Italic ", EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC), 10f),
+                        new RichTextSegment("Bold+Uline ", EnumSet.of(TextStyle.BOLD, TextStyle.UNDERLINE), 10f),
+                        new RichTextSegment("Italic+Uline ", EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 10f),
+                        new RichTextSegment("All Three", EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC, TextStyle.UNDERLINE), 10f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(40, 30).size(500, 700)
+                        .header(HeaderFont.HELVETICA, 14,
+                                "Mixed Formatting Combinations", TextAlignment.LEFT)
+                        .addContent(new TextContentElement(boldItalic))
+                        .addContent(new TextContentElement(boldUnderline))
+                        .addContent(new TextContentElement(italicUnderline))
+                        .addContent(new TextContentElement(allThree))
+                        .addContent(new TextContentElement(mixedLine))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageSize.getHeight());
+                assert finalY > 0 : "render() should return a positive final Y";
+                stream.close();
+            }
+
+            doc.save(new File("target/MixedFormattingCombinations.pdf"));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Body, Header1, Header2 text types
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Demonstrates Body(Normal), Header1, and Header2 content elements
+     * rendered within a single block.
+     */
+    @Test
+    public void testBodyAndHeaderTextTypes() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                // Header1 content element
+                ContentElement h1 = new HeaderContentElement.Builder(
+                        "Chapter One: Introduction", TextType.HEADER1)
+                        .fontFamily(HeaderFont.TIMES_ROMAN)
+                        .alignment(TextAlignment.LEFT)
+                        .build();
+
+                // Body paragraph
+                RichTextLine bodyLine1 = new RichTextLine(Collections.singletonList(
+                        new RichTextSegment(
+                                "This is normal body text rendered at the default body font " +
+                                "size. It demonstrates that Body(Normal) text works alongside " +
+                                "headers within the same RichTextBlock.",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize())),
+                        ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Header2 content element
+                ContentElement h2 = new HeaderContentElement.Builder(
+                        "Section 1.1: Background", TextType.HEADER2)
+                        .fontFamily(HeaderFont.TIMES_ROMAN)
+                        .alignment(TextAlignment.LEFT)
+                        .build();
+
+                // Another body paragraph with mixed styles
+                RichTextLine bodyLine2 = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Body text can contain ",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize()),
+                        new RichTextSegment("bold", EnumSet.of(TextStyle.BOLD),
+                                TextType.BODY.getDefaultFontSize()),
+                        new RichTextSegment(", ",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize()),
+                        new RichTextSegment("italic", EnumSet.of(TextStyle.ITALIC),
+                                TextType.BODY.getDefaultFontSize()),
+                        new RichTextSegment(", and ",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize()),
+                        new RichTextSegment("underlined", EnumSet.of(TextStyle.UNDERLINE),
+                                TextType.BODY.getDefaultFontSize()),
+                        new RichTextSegment(" formatting mixed inline.",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize())
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Second Header2
+                ContentElement h2b = new HeaderContentElement.Builder(
+                        "Section 1.2: Methodology", TextType.HEADER2)
+                        .fontFamily(HeaderFont.TIMES_ROMAN)
+                        .alignment(TextAlignment.LEFT)
+                        .build();
+
+                RichTextLine bodyLine3 = new RichTextLine(Collections.singletonList(
+                        new RichTextSegment(
+                                "Another body paragraph following the second sub-heading. " +
+                                "The text type system allows mixing header and body content " +
+                                "in a structured document layout.",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize())),
+                        ListType.NONE, 0, TextAlignment.LEFT);
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(40, 30).size(500, 700)
+                        .addContent(h1)
+                        .addContent(new TextContentElement(bodyLine1))
+                        .addContent(h2)
+                        .addContent(new TextContentElement(bodyLine2))
+                        .addContent(h2b)
+                        .addContent(new TextContentElement(bodyLine3))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageSize.getHeight());
+                assert finalY > 0 : "render() should return a positive final Y";
+                stream.close();
+            }
+
+            doc.save(new File("target/BodyAndHeaderTextTypes.pdf"));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Header rendering (left-aligned) with underline
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Verifies that the block-level header renders left-aligned with an underline.
+     */
+    @Test
+    public void testHeaderLeftAlignedWithUnderline() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                RichTextLine body = new RichTextLine(Collections.singletonList(
+                        new RichTextSegment("Content under the left-aligned underlined header.",
+                                EnumSet.noneOf(TextStyle.class), 10f)),
+                        ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Block-level header explicitly left-aligned
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(40, 30).size(500, 300)
+                        .header(HeaderFont.HELVETICA, 16,
+                                "Left-Aligned Header With Underline", TextAlignment.LEFT)
+                        .addContent(new TextContentElement(body))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageSize.getHeight());
+                assert finalY > 0 : "render() should return a positive final Y";
+                stream.close();
+            }
+
+            doc.save(new File("target/HeaderLeftAlignedUnderline.pdf"));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Bulleted and numbered lists
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Verifies that bulleted and numbered lists render correctly, including
+     * lists with mixed formatting in items.
+     */
+    @Test
+    public void testBulletedAndNumberedLists() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                // Bulleted list with mixed formatting
+                List<RichTextLine> bulletItems = Arrays.asList(
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Plain bullet item",
+                                        EnumSet.noneOf(TextStyle.class), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Bold bullet item",
+                                        EnumSet.of(TextStyle.BOLD), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Arrays.asList(
+                                new RichTextSegment("Mixed: ",
+                                        EnumSet.noneOf(TextStyle.class), 10f),
+                                new RichTextSegment("bold+italic",
+                                        EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC), 10f),
+                                new RichTextSegment(" in a bullet",
+                                        EnumSet.noneOf(TextStyle.class), 10f)),
+                                ListType.NONE, 0));
+
+                // Numbered list with styled items
+                List<RichTextLine> numberedItems = Arrays.asList(
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("First numbered item",
+                                        EnumSet.noneOf(TextStyle.class), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Second item with underline",
+                                        EnumSet.of(TextStyle.UNDERLINE), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Third item bold+underline",
+                                        EnumSet.of(TextStyle.BOLD, TextStyle.UNDERLINE), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Fourth item all styles",
+                                        EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC, TextStyle.UNDERLINE), 10f)),
+                                ListType.NONE, 0));
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(40, 30).size(500, 600)
+                        .header(HeaderFont.HELVETICA, 14,
+                                "Bulleted & Numbered Lists", TextAlignment.LEFT)
+                        .addContent(new ListContentElement(ListType.BULLETED, bulletItems))
+                        .addContent(new ListContentElement(ListType.NUMBERED, numberedItems))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageSize.getHeight());
+                assert finalY > 0 : "render() should return a positive final Y";
+                stream.close();
+            }
+
+            doc.save(new File("target/BulletedAndNumberedLists.pdf"));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Comprehensive combined test
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * A single comprehensive test that combines all capabilities:
+     * Header1, Header2, body text, mixed formatting, and lists.
+     */
+    @Test
+    public void testComprehensiveRichTextCapabilities() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                // H1
+                ContentElement h1 = new HeaderContentElement.Builder(
+                        "Document Title", TextType.HEADER1)
+                        .fontFamily(HeaderFont.HELVETICA)
+                        .alignment(TextAlignment.LEFT)
+                        .build();
+
+                // Body
+                RichTextLine intro = new RichTextLine(Collections.singletonList(
+                        new RichTextSegment(
+                                "This comprehensive test demonstrates all formatting capabilities " +
+                                "of the RichTextBlock system.",
+                                EnumSet.noneOf(TextStyle.class),
+                                TextType.BODY.getDefaultFontSize())),
+                        ListType.NONE, 0, TextAlignment.LEFT);
+
+                // H2
+                ContentElement h2 = new HeaderContentElement.Builder(
+                        "Styled Text", TextType.HEADER2)
+                        .alignment(TextAlignment.LEFT)
+                        .build();
+
+                // Body with all combinations
+                RichTextLine styledLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Normal ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        new RichTextSegment("Bold ",
+                                EnumSet.of(TextStyle.BOLD), 10f),
+                        new RichTextSegment("Italic ",
+                                EnumSet.of(TextStyle.ITALIC), 10f),
+                        new RichTextSegment("Underline ",
+                                EnumSet.of(TextStyle.UNDERLINE), 10f),
+                        new RichTextSegment("B+I ",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC), 10f),
+                        new RichTextSegment("B+U ",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.UNDERLINE), 10f),
+                        new RichTextSegment("I+U ",
+                                EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 10f),
+                        new RichTextSegment("B+I+U",
+                                EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC, TextStyle.UNDERLINE), 10f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // H2
+                ContentElement h2Lists = new HeaderContentElement.Builder(
+                        "Lists", TextType.HEADER2)
+                        .alignment(TextAlignment.LEFT)
+                        .build();
+
+                // Bullets
+                List<RichTextLine> bullets = Arrays.asList(
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Bullet one",
+                                        EnumSet.noneOf(TextStyle.class), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Bullet two (bold)",
+                                        EnumSet.of(TextStyle.BOLD), 10f)),
+                                ListType.NONE, 0));
+
+                // Numbers
+                List<RichTextLine> numbers = Arrays.asList(
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Step one",
+                                        EnumSet.noneOf(TextStyle.class), 10f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Step two (italic+underline)",
+                                        EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 10f)),
+                                ListType.NONE, 0));
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(40, 30).size(500, 750)
+                        .addContent(h1)
+                        .addContent(new TextContentElement(intro))
+                        .addContent(h2)
+                        .addContent(new TextContentElement(styledLine))
+                        .addContent(h2Lists)
+                        .addContent(new ListContentElement(ListType.BULLETED, bullets))
+                        .addContent(new ListContentElement(ListType.NUMBERED, numbers))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageSize.getHeight());
+                assert finalY > 0 : "render() should return a positive final Y";
+                stream.close();
+            }
+
+            doc.save(new File("target/ComprehensiveRichTextCapabilities.pdf"));
+        }
+    }
+
     /**
      * Reads a classpath resource and returns its content as a Base64-encoded string.
      */
