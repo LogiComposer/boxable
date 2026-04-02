@@ -378,6 +378,81 @@ public class RichTextBlockTest {
         }
     }
 
+    @Test
+    public void testMultiParagraphAlignments() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                // ── Paragraph 1: LEFT aligned (5+ lines) ────────────────
+                RichTextLine leftPara = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "This is the first paragraph with left alignment. It contains " +
+                                "enough text to span at least five visual lines when rendered " +
+                                "inside a reasonably narrow block. The purpose of this paragraph " +
+                                "is to demonstrate that left-aligned text wraps correctly at word " +
+                                "boundaries while keeping each line flush against the left margin. " +
+                                "Notice how every line starts at exactly the same horizontal position, " +
+                                "creating a clean and predictable reading experience for the viewer. " +
+                                "Left alignment is the most common alignment used in Western typography " +
+                                "because it follows the natural reading direction from left to right.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // ── Paragraph 2: RIGHT aligned (5+ lines) ───────────────
+                RichTextLine rightPara = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "This second paragraph uses right alignment. Every wrapped line " +
+                                "is pushed to the right edge of the block, leaving a ragged left " +
+                                "margin. Right alignment is less common for body text but can be " +
+                                "effective for certain design elements such as pull quotes, date " +
+                                "stamps, or decorative captions. This paragraph is deliberately " +
+                                "long enough to produce at least five visual lines so that the " +
+                                "right-alignment behaviour is clearly visible across multiple rows. " +
+                                "Each successive line should end at exactly the same horizontal " +
+                                "position on the right side of the content area.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.RIGHT);
+
+                // ── Paragraph 3: CENTER aligned (5+ lines) ──────────────
+                RichTextLine centerPara = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "The third and final paragraph demonstrates centre alignment. " +
+                                "Each visual line is horizontally centred within the available " +
+                                "block width, resulting in equal whitespace on both sides. Centre " +
+                                "alignment is frequently used for headings, titles, and short " +
+                                "decorative passages. When applied to longer body text like this " +
+                                "paragraph it can be harder to read because neither margin is " +
+                                "consistent, yet it remains a useful tool for emphasis. This text " +
+                                "is intentionally verbose to guarantee that at least five wrapped " +
+                                "lines are produced, so the centring effect is clearly observable.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.CENTER);
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(40, 30).size(500, 750)
+                        .header(HeaderFont.HELVETICA, 14,
+                                "Multi-Paragraph Alignment Demo", TextAlignment.CENTER)
+                        .addContent(new TextContentElement(leftPara))
+                        .addContent(new TextContentElement(rightPara))
+                        .addContent(new TextContentElement(centerPara))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageSize.getHeight());
+                // Verify render() returns a usable Y-position
+                assert finalY > 0 : "render() should return a positive final Y position";
+                stream.close();
+            }
+
+            doc.save(new File("target/MultiParagraphAlignmentDemo.pdf"));
+        }
+    }
+
     /**
      * Reads a classpath resource and returns its content as a Base64-encoded string.
      */
