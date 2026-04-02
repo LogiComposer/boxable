@@ -856,6 +856,143 @@ public class RichTextBlockTest {
         }
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    //  Landscape page-size tests (A3, A4, LETTER)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Multi-paragraph content on an A3 landscape page with LEFT, RIGHT and
+     * CENTER alignment — each paragraph spans at least 5 wrapped lines.
+     */
+    @Test
+    public void testMultiParagraphLandscapeA3() throws IOException {
+        renderLandscapeParagraphs(PDRectangle.A3, "LandscapeA3_Paragraphs");
+    }
+
+    /**
+     * Multi-paragraph content on an A4 landscape page with LEFT, RIGHT and
+     * CENTER alignment — each paragraph spans at least 5 wrapped lines.
+     */
+    @Test
+    public void testMultiParagraphLandscapeA4() throws IOException {
+        renderLandscapeParagraphs(PDRectangle.A4, "LandscapeA4_Paragraphs");
+    }
+
+    /**
+     * Multi-paragraph content on a LETTER landscape page with LEFT, RIGHT and
+     * CENTER alignment — each paragraph spans at least 5 wrapped lines.
+     */
+    @Test
+    public void testMultiParagraphLandscapeLetter() throws IOException {
+        renderLandscapeParagraphs(PDRectangle.LETTER, "LandscapeLetter_Paragraphs");
+    }
+
+    /**
+     * Shared helper: creates a landscape page of the given size and renders
+     * three paragraphs (LEFT, RIGHT, CENTER) each containing enough text for
+     * 5+ visual lines, then saves the PDF.
+     */
+    private void renderLandscapeParagraphs(PDRectangle baseSize,
+                                           String outputName) throws IOException {
+        // Flip width/height for landscape
+        PDRectangle landscape = new PDRectangle(baseSize.getHeight(), baseSize.getWidth());
+
+        try (PDDocument doc = new PDDocument()) {
+            PDPage page = new PDPage(landscape);
+            doc.addPage(page);
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                float pageW = landscape.getWidth();
+                float pageH = landscape.getHeight();
+
+                // Use ~90 % of the page width for the block, centred horizontally
+                float margin = 40f;
+                float blockWidth = pageW - 2 * margin;
+                float blockHeight = pageH - 2 * margin;
+
+                // ── Paragraph 1: LEFT aligned ────────────────────────────
+                RichTextLine leftPara = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "Left-aligned paragraph rendered on a landscape " +
+                                outputName.replaceAll("_", " ") + " page. " +
+                                "This paragraph is deliberately verbose so that word wrapping " +
+                                "produces at least five visual lines inside the block. Left " +
+                                "alignment keeps every line flush against the left margin, " +
+                                "producing a straight left edge and a ragged right edge. It is " +
+                                "the default alignment for most Western-language body copy and " +
+                                "offers the best readability for long passages. The renderer must " +
+                                "correctly compute the available width from the landscape page " +
+                                "dimensions and wrap the text accordingly without any overflow.",
+                                EnumSet.noneOf(TextStyle.class), 11f),
+                        new RichTextSegment(
+                                " Additional bold text to mix styles within the same line " +
+                                "and verify that segment-level styling is preserved across " +
+                                "word-wrap boundaries on landscape pages.",
+                                EnumSet.of(TextStyle.BOLD), 11f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // ── Paragraph 2: RIGHT aligned ───────────────────────────
+                RichTextLine rightPara = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "Right-aligned paragraph on the same landscape page. Every " +
+                                "visual line is pushed to the right edge of the block, creating " +
+                                "a straight right margin and a ragged left margin. This style " +
+                                "is commonly used for dates, signatures, and decorative captions. " +
+                                "Even on a wide landscape layout the alignment strategy should " +
+                                "produce consistent results with no text extending beyond the " +
+                                "right boundary. This text is intentionally long enough to guarantee " +
+                                "at least five wrapped lines so that the alignment behaviour is " +
+                                "clearly visible and verifiable in the output PDF.",
+                                EnumSet.noneOf(TextStyle.class), 11f),
+                        new RichTextSegment(
+                                " Italic tail appended to exercise mixed-style segments " +
+                                "under right alignment on landscape orientation.",
+                                EnumSet.of(TextStyle.ITALIC), 11f)
+                ), ListType.NONE, 0, TextAlignment.RIGHT);
+
+                // ── Paragraph 3: CENTER aligned ──────────────────────────
+                RichTextLine centerPara = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "Centre-aligned paragraph completing the landscape demo. " +
+                                "Each wrapped line is horizontally centred within the block, " +
+                                "yielding symmetric whitespace on both sides. Centre alignment " +
+                                "is ideal for headings and short decorative text; applying it " +
+                                "to longer body copy as shown here is unusual but perfectly " +
+                                "valid. The renderer calculates the text width of every visual " +
+                                "line and offsets it by half the remaining space. This paragraph " +
+                                "is sufficiently long to produce at least five lines so that the " +
+                                "centring effect is unmistakable in the generated PDF output.",
+                                EnumSet.noneOf(TextStyle.class), 11f),
+                        new RichTextSegment(
+                                " Underlined closing segment to confirm that underline " +
+                                "decoration works with centre alignment on landscape pages.",
+                                EnumSet.of(TextStyle.UNDERLINE), 11f)
+                ), ListType.NONE, 0, TextAlignment.CENTER);
+
+                RichTextBlock block = RichTextBlock.builder()
+                        .at(margin, margin)
+                        .size(blockWidth, blockHeight)
+                        .header(HeaderFont.HELVETICA, 16,
+                                outputName.replace('_', ' ') + " — Landscape Demo",
+                                TextAlignment.CENTER)
+                        .addContent(new TextContentElement(leftPara))
+                        .addContent(new TextContentElement(rightPara))
+                        .addContent(new TextContentElement(centerPara))
+                        .drawBorder(true)
+                        .build();
+
+                float finalY = block.render(doc, stream, pageH);
+                assert finalY > 0 : "render() should return a positive final Y on landscape "
+                        + outputName;
+                stream.close();
+            }
+
+            doc.save(new File("target/" + outputName + ".pdf"));
+        }
+    }
+
     /**
      * Reads a classpath resource and returns its content as a Base64-encoded string.
      */
