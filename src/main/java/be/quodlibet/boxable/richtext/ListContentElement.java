@@ -36,9 +36,10 @@ public final class ListContentElement implements ContentElement {
     @Override
     public float estimateHeight(float availableWidth) throws IOException {
         float total = 0;
-        for (RichTextLine item : items) {
+        for (int i = 0; i < items.size(); i++) {
+            RichTextLine item = items.get(i);
             // Each item is rendered as a TextContentElement (one line)
-            RichTextLine decorated = decorateLine(item, items.indexOf(item) + 1);
+            RichTextLine decorated = decorateLine(item, i + 1);
             TextContentElement textEl = new TextContentElement(decorated);
             total += textEl.estimateHeight(availableWidth);
         }

@@ -48,7 +48,7 @@ public final class InlineImageSegment implements LineElement {
         this.quality = quality;
     }
 
-    // ── Factory methods ─────────────────��────────────────────────────────
+    // Factory methods -----------------------------------------------------
 
     /**
      * Creates an inline image from a {@link BufferedImage}.

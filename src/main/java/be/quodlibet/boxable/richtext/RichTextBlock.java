@@ -164,10 +164,9 @@ public final class RichTextBlock {
         PDPage page = new PDPage(effective);
         document.addPage(page);
 
-        try (PDPageContentStream raw = new PDPageContentStream(document, page)) {
-            PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+        try (PageContentStreamOptimized stream =
+                     new PageContentStreamOptimized(new PDPageContentStream(document, page))) {
             float finalY = render(document, stream, effective.getHeight());
-            stream.close();
             return finalY;
         }
     }
@@ -262,10 +261,7 @@ public final class RichTextBlock {
     public float getBlockPadding() { return blockPadding; }
     public List<ContentElement> getContent() { return content; }
 
-    // ════════════════════════���═════════════════════════════════════════════
-    //  BUILDER
-    // ══════════════════════════════════════════════════════════════════════
-
+    // ============================== BUILDER ===============================
     /**
      * Creates a new {@link Builder}.
      */

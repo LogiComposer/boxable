@@ -41,7 +41,7 @@ public final class RichTextSegment implements LineElement {
         this(text, styles, fontSize, Color.BLACK);
     }
 
-    // ── Getters ────────────────────────────────────────────��─────────────
+    // == Getters ==========================================================
 
     public String getText()             { return text; }
     public EnumSet<TextStyle> getStyles() { return EnumSet.copyOf(styles); }

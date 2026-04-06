@@ -68,6 +68,11 @@ public final class JustifyAlignmentStrategy implements AlignmentStrategy {
             totalUnitWidth += u.width;
         }
         float totalGap = contentWidth - totalUnitWidth;
+        // If there is no positive gap to distribute, fall back to left alignment
+        if (totalGap <= 0) {
+            LeftAlignmentStrategy.INSTANCE.renderLine(ctx, elements, y, contentStartX, contentWidth);
+            return;
+        }
         float gapPerSpace = totalGap / (units.size() - 1);
 
         // Render each unit with computed gaps

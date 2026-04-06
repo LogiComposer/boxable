@@ -48,7 +48,7 @@ public final class TextContentElement implements ContentElement {
         this(Collections.singletonList(line));
     }
 
-    // ── ContentElement contract ────────────────────────────────────────��─
+    // -- ContentElement contract --------------------------------------------
 
     @Override
     public float estimateHeight(float availableWidth) throws IOException {
