@@ -55,23 +55,25 @@ public final class ImageCache {
                                              BufferedImage image, float quality) throws IOException {
         Map<String, PDImageXObject> docCache = getDocumentCache(document);
 
-        PDImageXObject cached = docCache.get(cacheKey);
-        if (cached != null) {
-            logger.debug("Image cache hit for key: {}", cacheKey);
-            return cached;
+        try {
+            return docCache.computeIfAbsent(cacheKey, key -> {
+                try {
+                    logger.debug("Encoding image for key: {}", key);
+                    PDImageXObject xObject;
+                    if (quality >= 1.0f) {
+                        xObject = LosslessFactory.createFromImage(document, image);
+                    } else {
+                        xObject = JPEGFactory.createFromImage(document, image, quality);
+                    }
+                    logger.debug("Image cached for key: {}", key);
+                    return xObject;
+                } catch (IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+            });
+        } catch (java.io.UncheckedIOException e) {
+            throw e.getCause();
         }
-
-        // Encode image — this is the expensive operation
-        PDImageXObject xObject;
-        if (quality >= 1.0f) {
-            xObject = LosslessFactory.createFromImage(document, image);
-        } else {
-            xObject = JPEGFactory.createFromImage(document, image, quality);
-        }
-
-        docCache.put(cacheKey, xObject);
-        logger.debug("Image cached for key: {}", cacheKey);
-        return xObject;
     }
 
     /**

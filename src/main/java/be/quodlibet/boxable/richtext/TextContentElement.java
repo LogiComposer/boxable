@@ -73,13 +73,13 @@ public final class TextContentElement implements ContentElement {
         float fontSize = line.getMaxFontSize();
         float lineHeight = fontSize * LINE_SPACING;
 
-        // Approximate the number of visual lines after wrapping
-        float totalWidth = 0;
-        for (LineElement el : line.getElements()) {
-            totalWidth += el.getWidth();
+        float contentWidth = availableWidth;
+        if (line.getListType() == ListType.BULLETED || line.getListType() == ListType.NUMBERED) {
+            contentWidth -= LIST_INDENT;
         }
-        int visualLines = Math.max(1, (int) Math.ceil(totalWidth / availableWidth));
-        return lineHeight * visualLines;
+
+        List<List<LineElement>> wrappedLines = wrapElements(line.getElements(), contentWidth);
+        return lineHeight * wrappedLines.size();
     }
 
     private void renderLine(RenderContext ctx, RichTextLine line) throws IOException {
