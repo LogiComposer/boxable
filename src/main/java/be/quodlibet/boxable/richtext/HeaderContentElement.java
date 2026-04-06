@@ -1,5 +1,8 @@
 package be.quodlibet.boxable.richtext;
 
+import be.quodlibet.boxable.FontSet;
+import be.quodlibet.boxable.Standard14FontFamily;
+import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
@@ -13,7 +16,7 @@ import java.util.List;
  * the content flow of a {@link RichTextBlock}.
  * <p>
  * Unlike the block-level header set via
- * {@link RichTextBlock.Builder#header(HeaderFont, float, String, TextAlignment)},
+ * {@link RichTextBlock.Builder#header(FontSet, float, String, TextAlignment)},
  * a {@code HeaderContentElement} is an inline content element that can appear
  * anywhere in the content list — allowing multiple headings at different levels
  * within a single block.
@@ -32,7 +35,7 @@ import java.util.List;
  * <h3>Usage</h3>
  * <pre>{@code
  * ContentElement h1 = new HeaderContentElement.Builder("Chapter One", TextType.HEADER1)
- *         .fontFamily(HeaderFont.TIMES_ROMAN)
+ *         .fontFamily(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN))
  *         .alignment(TextAlignment.LEFT)
  *         .build();
  *
@@ -49,7 +52,7 @@ public final class HeaderContentElement implements ContentElement {
     private final String text;
     private final TextType textType;
     private final float fontSize;
-    private final HeaderFont fontFamily;
+    private final FontSet fontFamily;
     private final TextAlignment alignment;
 
     private HeaderContentElement(Builder builder) {
@@ -136,7 +139,7 @@ public final class HeaderContentElement implements ContentElement {
     public String getText()             { return text; }
     public TextType getTextType()       { return textType; }
     public float getFontSize()          { return fontSize; }
-    public HeaderFont getFontFamily()   { return fontFamily; }
+    public FontSet getFontFamily()      { return fontFamily; }
     public TextAlignment getAlignment() { return alignment; }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -150,7 +153,7 @@ public final class HeaderContentElement implements ContentElement {
         private final String text;
         private final TextType textType;
         private float fontSize;
-        private HeaderFont fontFamily = HeaderFont.HELVETICA;
+        private FontSet fontFamily = FontUtils.getFontSet(Standard14FontFamily.HELVETICA);
         private TextAlignment alignment = TextAlignment.LEFT;
 
         /**
@@ -170,9 +173,9 @@ public final class HeaderContentElement implements ContentElement {
             return this;
         }
 
-        /** Sets the font family (default {@link HeaderFont#HELVETICA}). */
-        public Builder fontFamily(HeaderFont fontFamily) {
-            this.fontFamily = fontFamily != null ? fontFamily : HeaderFont.HELVETICA;
+        /** Sets the font family (defaults to {@link Standard14FontFamily#HELVETICA}). */
+        public Builder fontFamily(FontSet fontFamily) {
+            this.fontFamily = fontFamily != null ? fontFamily : FontUtils.getFontSet(Standard14FontFamily.HELVETICA);
             return this;
         }
 

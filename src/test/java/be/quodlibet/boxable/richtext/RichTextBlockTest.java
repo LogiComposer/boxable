@@ -4,6 +4,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import be.quodlibet.boxable.Standard14FontFamily;
+import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.junit.Test;
 
@@ -50,7 +52,7 @@ public class RichTextBlockTest {
             try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
                 PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
 
-                // ── Block 1: Narrow block (150pt wide) with long text ────
+                //  Block 1: Narrow block (150pt wide) with long text
                 RichTextLine longLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "This is a very long text that should wrap within the narrow " +
@@ -63,13 +65,13 @@ public class RichTextBlockTest {
                 RichTextBlock narrowBlock = RichTextBlock.builder()
                         .at(30, 30).size(150, 400)
                         .blockPadding(8f)
-                        .header(HeaderFont.HELVETICA, 11, "Narrow Block", TextAlignment.CENTER)
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 11, "Narrow Block", TextAlignment.CENTER)
                         .addContent(new TextContentElement(longLine))
                         .drawBorder(true)
                         .build();
                 narrowBlock.render(doc, stream, pageSize.getHeight());
 
-                // ── Block 2: Mixed-style segments that collectively overflow ─
+                //  Block 2: Mixed-style segments that collectively overflow
                 RichTextLine mixedLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Bold start ",
                                 EnumSet.of(TextStyle.BOLD), 10f),
@@ -83,13 +85,13 @@ public class RichTextBlockTest {
                 RichTextBlock mixedBlock = RichTextBlock.builder()
                         .at(200, 30).size(180, 400)
                         .blockPadding(2f)
-                        .header(HeaderFont.TIMES_ROMAN, 11, "Mixed Styles", TextAlignment.CENTER)
+                        .header(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN), 11, "Mixed Styles", TextAlignment.CENTER)
                         .addContent(new TextContentElement(mixedLine))
                         .drawBorder(true)
                         .build();
                 mixedBlock.render(doc, stream, pageSize.getHeight());
 
-                // ── Block 3: Very long single word (character-level break) ──
+                //  Block 3: Very long single word (character-level break)
                 RichTextLine longWordLine = new RichTextLine(Collections.singletonList(
                         new RichTextSegment(
                                 "Supercalifragilisticexpialidocious_ExtraordinarilyLongWordThatCannotFitOnOneLine " +
@@ -100,7 +102,7 @@ public class RichTextBlockTest {
                 RichTextBlock longWordBlock = RichTextBlock.builder()
                         .at(400, 30).size(160, 400)
                         .blockPadding(0f)
-                        .header(HeaderFont.COURIER, 9, "Long Word Break", TextAlignment.CENTER)
+                        .header(FontUtils.getFontSet(Standard14FontFamily.COURIER), 9, "Long Word Break", TextAlignment.CENTER)
                         .addContent(new TextContentElement(longWordLine))
                         .drawBorder(true)
                         .build();
@@ -121,7 +123,7 @@ public class RichTextBlockTest {
         ), ListType.NONE, 0, TextAlignment.JUSTIFY);
 
         RichTextLine subtitle = new RichTextLine(Collections.singletonList(
-                new RichTextSegment("— Confidential —",
+                new RichTextSegment("-- Confidential --",
                         EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 9f)
         ), ListType.NONE, 0, TextAlignment.CENTER);
 
@@ -164,16 +166,18 @@ public class RichTextBlockTest {
         return RichTextBlock.builder()
                 .at(30, 30).size(370, 500)
                 .blockPadding(6f)
-                .header(HeaderFont.TIMES_ROMAN, 16, "Quarterly Report Summary",
+                .header(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN), 16, "Quarterly Report Summary",
                         TextAlignment.CENTER)
                 .addContent(new TextContentElement(paragraph))
                 .addContent(new TextContentElement(subtitle))
                 .addContent(new TextContentElement(dateLine))
+                // JPG image  proportionally scaled to block inner width
                 .addContent(new ImageContentElement.Builder(jpgFile)
-                        .size(200, 60).alignment(TextAlignment.CENTER)
+                        .alignment(TextAlignment.CENTER)
                         .cacheKey("jpg-app-dev").build())
+                // PNG image  explicit size override
                 .addContent(new ImageContentElement.Builder(pngStream)
-                        .size(200, 60).alignment(TextAlignment.CENTER)
+                        .size(180, 55).alignment(TextAlignment.CENTER)
                         .cacheKey("png-150dpi").build())
                 .addContent(new ListContentElement(ListType.BULLETED, bullets))
                 .addContent(new ListContentElement(ListType.NUMBERED, numbered))
@@ -199,7 +203,7 @@ public class RichTextBlockTest {
         return RichTextBlock.builder()
                 .at(420, 30).size(340, 500)
                 .blockPadding(10f)
-                .header(HeaderFont.COURIER, 12, "Side Notes", TextAlignment.LEFT)
+                .header(FontUtils.getFontSet(Standard14FontFamily.COURIER), 12, "Side Notes", TextAlignment.LEFT)
                 .addContent(new TextContentElement(justifiedParagraph))
                 .addContent(new TextContentElement(note))
                 .showOverflowIndicator(true)
@@ -211,7 +215,7 @@ public class RichTextBlockTest {
         RichTextBlock.Builder builder = RichTextBlock.builder()
                 .at(50, 50).size(495, 200)
                 .blockPadding(3f)
-                .header(HeaderFont.HELVETICA, 14, "Overflow Demonstration",
+                .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14, "Overflow Demonstration",
                         TextAlignment.CENTER)
                 .showOverflowIndicator(true)
                 .drawBorder(true);
@@ -239,8 +243,8 @@ public class RichTextBlockTest {
         File jpgFile = new File(
                 Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
 
-        InlineImageSegment pngInline = InlineImageSegment.fromFile(pngFile, 30, 12);
-        InlineImageSegment jpgInline = InlineImageSegment.fromFile(jpgFile, 30, 12);
+        InlineImageSegment pngInline = InlineImageSegment.fromFile(pngFile, 36, 14);
+        InlineImageSegment jpgInline = InlineImageSegment.fromFile(jpgFile, 36, 14);
 
         try (PDDocument doc = new PDDocument()) {
             PDRectangle pageSize = PDRectangle.A4;
@@ -250,7 +254,6 @@ public class RichTextBlockTest {
             try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
                 PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
 
-                // ── 1. Text + image + text (image in the middle) ─────────
                 RichTextLine middleLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Revenue grew by ",
                                 EnumSet.noneOf(TextStyle.class), 10f),
@@ -259,21 +262,20 @@ public class RichTextBlockTest {
                                 EnumSet.noneOf(TextStyle.class), 10f)
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // ── 2. Image at the start ────────────────────────────────
                 RichTextLine startLine = new RichTextLine(Arrays.asList(
                         jpgInline,
                         new RichTextSegment(" This text follows a JPG image at the start.",
                                 EnumSet.noneOf(TextStyle.class), 10f)
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // ── 3. Image at the end ──────────────────────────────────
+                //  3. Image at the end
                 RichTextLine endLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("This text precedes a PNG image: ",
                                 EnumSet.noneOf(TextStyle.class), 10f),
                         pngInline
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // ── 4. Multiple images side-by-side with text ────────────
+                //  4. Multiple images side-by-side with text
                 RichTextLine sideBySide = new RichTextLine(Arrays.asList(
                         pngInline,
                         new RichTextSegment(" between ",
@@ -284,12 +286,12 @@ public class RichTextBlockTest {
                         pngInline
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // ── 5. Image-only line ───────────────────────────────────
+                //  5. Image-only line
                 RichTextLine imageOnly = new RichTextLine(Arrays.asList(
                         pngInline, jpgInline, pngInline
                 ), ListType.NONE, 0, TextAlignment.CENTER);
 
-                // ── 6. Centered alignment with inline image ──────────────
+                //  6. Centered alignment with inline image
                 RichTextLine centeredLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Centered: ",
                                 EnumSet.of(TextStyle.ITALIC), 10f),
@@ -298,7 +300,7 @@ public class RichTextBlockTest {
                                 EnumSet.noneOf(TextStyle.class), 10f)
                 ), ListType.NONE, 0, TextAlignment.CENTER);
 
-                // ── 7. Right-aligned with inline image ───────────────────
+                //  7. Right-aligned with inline image
                 RichTextLine rightLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Right: ",
                                 EnumSet.noneOf(TextStyle.class), 10f),
@@ -307,7 +309,7 @@ public class RichTextBlockTest {
                                 EnumSet.noneOf(TextStyle.class), 10f)
                 ), ListType.NONE, 0, TextAlignment.RIGHT);
 
-                // ── 8. Justified with inline images ──────────────────────
+                //  8. Justified with inline images
                 RichTextLine justifiedLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Justified text with ",
                                 EnumSet.noneOf(TextStyle.class), 10f),
@@ -319,7 +321,7 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(30, 30).size(500, 700)
                         .blockPadding(6f)
-                        .header(HeaderFont.HELVETICA, 14,
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Inline Images Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(middleLine))
                         .addContent(new TextContentElement(startLine))
@@ -364,16 +366,16 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(30, 30).size(500, 700)
                         .blockPadding(9f)
-                        .header(HeaderFont.HELVETICA, 14,
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Base64 Image Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(intro))
-                        // Raw Base64 PNG
+                        // Raw Base64 PNG  proportionally scaled to block width
                         .addContent(ImageContentElement.Builder.fromBase64(pngBase64)
-                                .size(200, 60).alignment(TextAlignment.CENTER)
+                                .alignment(TextAlignment.CENTER)
                                 .cacheKey("b64-png").build())
-                        // Data-URI Base64 JPG
+                        // Data-URI Base64 JPG  explicit size override
                         .addContent(ImageContentElement.Builder.fromBase64(jpgBase64DataUri)
-                                .size(200, 60).alignment(TextAlignment.CENTER)
+                                .size(220, 70).alignment(TextAlignment.CENTER)
                                 .cacheKey("b64-jpg").build())
                         .drawBorder(true)
                         .build();
@@ -396,7 +398,7 @@ public class RichTextBlockTest {
             try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
                 PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
 
-                // ── Paragraph 1: LEFT aligned (5+ lines) ────────────────
+                //  Paragraph 1: LEFT aligned (5+ lines)
                 RichTextLine leftPara = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "This is the first paragraph with left alignment. It contains " +
@@ -411,7 +413,7 @@ public class RichTextBlockTest {
                                 EnumSet.noneOf(TextStyle.class), 10f)
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // ── Paragraph 2: RIGHT aligned (5+ lines) ───────────────
+                //  Paragraph 2: RIGHT aligned (5+ lines)
                 RichTextLine rightPara = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "This second paragraph uses right alignment. Every wrapped line " +
@@ -426,7 +428,7 @@ public class RichTextBlockTest {
                                 EnumSet.noneOf(TextStyle.class), 10f)
                 ), ListType.NONE, 0, TextAlignment.RIGHT);
 
-                // ── Paragraph 3: CENTER aligned (5+ lines) ──────────────
+                //  Paragraph 3: CENTER aligned (5+ lines)
                 RichTextLine centerPara = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "The third and final paragraph demonstrates centre alignment. " +
@@ -444,7 +446,7 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 750)
                         .blockPadding(12f)
-                        .header(HeaderFont.HELVETICA, 14,
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Multi-Paragraph Alignment Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(leftPara))
                         .addContent(new TextContentElement(rightPara))
@@ -462,9 +464,9 @@ public class RichTextBlockTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    //
     //  Mixed formatting combinations
-    // ════════════════════════════════════════════════════════════════════════
+    //
 
     /**
      * Verifies all mixed text style combinations render without error:
@@ -512,7 +514,7 @@ public class RichTextBlockTest {
                                 EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC, TextStyle.UNDERLINE), 11f)
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // Mixed segments within one line: normal → bold+italic → bold+underline → italic+underline → all
+                // Mixed segments within one line: normal -> bold+italic -> bold+underline -> italic+underline -> all
                 RichTextLine mixedLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Normal ", EnumSet.noneOf(TextStyle.class), 10f),
                         new RichTextSegment("Bold+Italic ", EnumSet.of(TextStyle.BOLD, TextStyle.ITALIC), 10f),
@@ -524,7 +526,7 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 700)
                         .blockPadding(5f)
-                        .header(HeaderFont.HELVETICA, 14,
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Mixed Formatting Combinations", TextAlignment.LEFT)
                         .addContent(new TextContentElement(boldItalic))
                         .addContent(new TextContentElement(boldUnderline))
@@ -543,9 +545,9 @@ public class RichTextBlockTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    //
     //  Body, Header1, Header2 text types
-    // ════════════════════════════════════════════════════════════════════════
+    //
 
     /**
      * Demonstrates Body(Normal), Header1, and Header2 content elements
@@ -564,7 +566,7 @@ public class RichTextBlockTest {
                 // Header1 content element
                 ContentElement h1 = new HeaderContentElement.Builder(
                         "Chapter One: Introduction", TextType.HEADER1)
-                        .fontFamily(HeaderFont.TIMES_ROMAN)
+                        .fontFamily(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN))
                         .alignment(TextAlignment.LEFT)
                         .build();
 
@@ -581,7 +583,7 @@ public class RichTextBlockTest {
                 // Header2 content element
                 ContentElement h2 = new HeaderContentElement.Builder(
                         "Section 1.1: Background", TextType.HEADER2)
-                        .fontFamily(HeaderFont.TIMES_ROMAN)
+                        .fontFamily(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN))
                         .alignment(TextAlignment.LEFT)
                         .build();
 
@@ -610,7 +612,7 @@ public class RichTextBlockTest {
                 // Second Header2
                 ContentElement h2b = new HeaderContentElement.Builder(
                         "Section 1.2: Methodology", TextType.HEADER2)
-                        .fontFamily(HeaderFont.TIMES_ROMAN)
+                        .fontFamily(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN))
                         .alignment(TextAlignment.LEFT)
                         .build();
 
@@ -644,9 +646,9 @@ public class RichTextBlockTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    //
     //  Header rendering (left-aligned) with underline
-    // ════════════════════════════════════════════════════════════════════════
+    //
 
     /**
      * Verifies that the block-level header renders left-aligned with an underline.
@@ -670,7 +672,7 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 300)
                         .blockPadding(1f)
-                        .header(HeaderFont.HELVETICA, 16,
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 16,
                                 "Left-Aligned Header With Underline", TextAlignment.LEFT)
                         .addContent(new TextContentElement(body))
                         .drawBorder(true)
@@ -685,9 +687,9 @@ public class RichTextBlockTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    //
     //  Bulleted and numbered lists
-    // ════════════════════════════════════════════════════════════════════════
+    //
 
     /**
      * Verifies that bulleted and numbered lists render correctly, including
@@ -744,7 +746,7 @@ public class RichTextBlockTest {
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 600)
                         .blockPadding(7f)
-                        .header(HeaderFont.HELVETICA, 14,
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Bulleted & Numbered Lists", TextAlignment.LEFT)
                         .addContent(new ListContentElement(ListType.BULLETED, bulletItems))
                         .addContent(new ListContentElement(ListType.NUMBERED, numberedItems))
@@ -760,9 +762,9 @@ public class RichTextBlockTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    //
     //  Comprehensive combined test
-    // ════════════════════════════════════════════════════════════════════════
+    //
 
     /**
      * A single comprehensive test that combines all capabilities:
@@ -781,7 +783,7 @@ public class RichTextBlockTest {
                 // H1
                 ContentElement h1 = new HeaderContentElement.Builder(
                         "Document Title", TextType.HEADER1)
-                        .fontFamily(HeaderFont.HELVETICA)
+                        .fontFamily(FontUtils.getFontSet(Standard14FontFamily.HELVETICA))
                         .alignment(TextAlignment.LEFT)
                         .build();
 
@@ -869,13 +871,13 @@ public class RichTextBlockTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    //
     //  Landscape page-size tests (A3, A4, LETTER)
-    // ════════════════════════════════════════════════════════════════════════
+    //
 
     /**
      * Multi-paragraph content on an A3 landscape page with LEFT, RIGHT and
-     * CENTER alignment — each paragraph spans at least 5 wrapped lines.
+     * CENTER alignment - each paragraph spans at least 5 wrapped lines.
      */
     @Test
     public void testMultiParagraphLandscapeA3() throws IOException {
@@ -884,7 +886,7 @@ public class RichTextBlockTest {
 
     /**
      * Multi-paragraph content on an A4 landscape page with LEFT, RIGHT and
-     * CENTER alignment — each paragraph spans at least 5 wrapped lines.
+     * CENTER alignment - each paragraph spans at least 5 wrapped lines.
      */
     @Test
     public void testMultiParagraphLandscapeA4() throws IOException {
@@ -893,7 +895,7 @@ public class RichTextBlockTest {
 
     /**
      * Multi-paragraph content on a LETTER landscape page with LEFT, RIGHT and
-     * CENTER alignment — each paragraph spans at least 5 wrapped lines.
+     * CENTER alignment - each paragraph spans at least 5 wrapped lines.
      */
     @Test
     public void testMultiParagraphLandscapeLetter() throws IOException {
@@ -925,7 +927,7 @@ public class RichTextBlockTest {
                 float blockWidth = pageW - 2 * margin;
                 float blockHeight = pageH - 2 * margin;
 
-                // ── Paragraph 1: LEFT aligned ────────────────────────────
+                //  Paragraph 1: LEFT aligned
                 RichTextLine leftPara = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "Left-aligned paragraph rendered on a landscape " +
@@ -946,7 +948,7 @@ public class RichTextBlockTest {
                                 EnumSet.of(TextStyle.BOLD), 11f)
                 ), ListType.NONE, 0, TextAlignment.LEFT);
 
-                // ── Paragraph 2: RIGHT aligned ───────────────────────────
+                //  Paragraph 2: RIGHT aligned
                 RichTextLine rightPara = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "Right-aligned paragraph on the same landscape page. Every " +
@@ -965,7 +967,7 @@ public class RichTextBlockTest {
                                 EnumSet.of(TextStyle.ITALIC), 11f)
                 ), ListType.NONE, 0, TextAlignment.RIGHT);
 
-                // ── Paragraph 3: CENTER aligned ──────────────────────────
+                //  Paragraph 3: CENTER aligned
                 RichTextLine centerPara = new RichTextLine(Arrays.asList(
                         new RichTextSegment(
                                 "Centre-aligned paragraph completing the landscape demo. " +
@@ -988,8 +990,8 @@ public class RichTextBlockTest {
                         .at(margin, margin)
                         .size(blockWidth, blockHeight)
                         .blockPadding(10f)
-                        .header(HeaderFont.HELVETICA, 16,
-                                outputName.replace('_', ' ') + " — Landscape Demo",
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 16,
+                                outputName.replace('_', ' ') + " - Landscape Demo",
                                 TextAlignment.CENTER)
                         .addContent(new TextContentElement(leftPara))
                         .addContent(new TextContentElement(rightPara))
@@ -1025,5 +1027,4 @@ public class RichTextBlockTest {
     }
 
 }
-
 

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import be.quodlibet.boxable.FontSet;
 import be.quodlibet.boxable.FontStyle;
+import be.quodlibet.boxable.Standard14FontFamily;
 import be.quodlibet.boxable.SupportedFont;
 
 /**
@@ -411,13 +412,7 @@ public final class FontUtils {
 	 */
 	public static FontSet getDefaultFontSet() {
 		if (defaultFonts.isEmpty()) {
-			// Use Standard14Fonts as fallback
-			PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-			PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-			PDType1Font italic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
-			PDType1Font boldItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
-			
-			return new FontSet("Helvetica", regular, bold, italic, boldItalic);
+			return getFontSet(Standard14FontFamily.HELVETICA);
 		} else {
 			PDFont regular = defaultFonts.get("font");
 			PDFont bold = defaultFonts.get("fontBold");
@@ -427,12 +422,7 @@ public final class FontUtils {
 			// Check if any of the default fonts are null - if so, fall back to Standard14Fonts
 			if (regular == null || bold == null || italic == null || boldItalic == null) {
 				logger.warn("Some default fonts are null, falling back to Standard14Fonts");
-				PDType1Font regularFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-				PDType1Font boldFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-				PDType1Font italicFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
-				PDType1Font boldItalicFallback = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE);
-				
-				return new FontSet("Helvetica", regularFallback, boldFallback, italicFallback, boldItalicFallback);
+				return getFontSet(Standard14FontFamily.HELVETICA);
 			}
 			
 			return new FontSet("Default", regular, bold, italic, boldItalic);
@@ -441,5 +431,21 @@ public final class FontUtils {
 
 	public static void clearDefaultFonts() {
 		defaultFonts.clear();
+	}
+
+	/**
+	 * <p>
+	 * Returns a {@link FontSet} for the given {@link Standard14FontFamily}.
+	 * </p>
+	 *
+	 * @param fontFamily the Standard 14 font family (if {@code null}, defaults
+	 *                   to {@link Standard14FontFamily#HELVETICA})
+	 * @return A {@link FontSet} containing all four style variants
+	 */
+	public static FontSet getFontSet(Standard14FontFamily fontFamily) {
+		if (fontFamily == null) {
+			fontFamily = Standard14FontFamily.HELVETICA;
+		}
+		return fontFamily.toFontSet();
 	}
 }

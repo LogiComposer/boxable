@@ -1,5 +1,8 @@
 package be.quodlibet.boxable.richtext;
 
+import be.quodlibet.boxable.FontSet;
+import be.quodlibet.boxable.Standard14FontFamily;
+import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -23,7 +26,7 @@ import java.util.List;
  * RichTextBlock block = RichTextBlock.builder()
  *         .at(100, 80)
  *         .size(400, 300)
- *         .header(HeaderFont.TIMES_ROMAN, 16, "Report", TextAlignment.CENTER)
+ *         .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 16, "Report", TextAlignment.CENTER)
  *         .addContent(new TextContentElement(...))
  *         .addContent(new ImageContentElement.Builder(img).alignment(TextAlignment.CENTER).build())
  *         .addContent(new ListContentElement(ListType.BULLETED, items))
@@ -59,8 +62,9 @@ public final class RichTextBlock {
     private final float blockHeight;
     private final float blockPadding;
 
+
     // ── Header ───────────────────────────────────────────────────────────
-    private final HeaderFont headerFont;
+    private final FontSet headerFont;
     private final float headerFontSize;
     private final String headerText;
     private final TextAlignment headerAlignment;
@@ -278,7 +282,7 @@ public final class RichTextBlock {
         private float blockWidth = 400;
         private float blockHeight = 300;
         private float blockPadding = DEFAULT_BLOCK_PADDING;
-        private HeaderFont headerFont = HeaderFont.HELVETICA;
+        private FontSet headerFont = FontUtils.getFontSet(Standard14FontFamily.HELVETICA);
         private float headerFontSize = 14f;
         private String headerText;
         private TextAlignment headerAlignment = TextAlignment.LEFT;
@@ -326,15 +330,16 @@ public final class RichTextBlock {
             return this;
         }
 
+
         /**
          * Configures the block header.
          *
-         * @param font      the header font family
+         * @param font      the header font set
          * @param fontSize  font size in points
          * @param text      the header text
          * @param alignment horizontal alignment of the header
          */
-        public Builder header(HeaderFont font, float fontSize, String text,
+        public Builder header(FontSet font, float fontSize, String text,
                               TextAlignment alignment) {
             this.headerFont = font;
             this.headerFontSize = fontSize;

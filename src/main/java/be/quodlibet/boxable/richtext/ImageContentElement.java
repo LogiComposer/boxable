@@ -31,6 +31,7 @@ public final class ImageContentElement implements ContentElement {
     private final String cacheKey;
     private final float requestedWidth;
     private final float requestedHeight;
+    private final boolean explicitSize;
     private final TextAlignment alignment;
     private final float spacingBefore;
     private final float spacingAfter;
@@ -41,6 +42,7 @@ public final class ImageContentElement implements ContentElement {
         this.cacheKey = builder.cacheKey;
         this.requestedWidth = builder.requestedWidth;
         this.requestedHeight = builder.requestedHeight;
+        this.explicitSize = builder.explicitSize;
         this.alignment = builder.alignment;
         this.spacingBefore = builder.spacingBefore;
         this.spacingAfter = builder.spacingAfter;
@@ -51,7 +53,7 @@ public final class ImageContentElement implements ContentElement {
 
     @Override
     public float estimateHeight(float availableWidth) throws IOException {
-        float[] dim = fitDimensions(availableWidth, Float.MAX_VALUE);
+        float[] dim = resolveAndFit(availableWidth, Float.MAX_VALUE);
         return spacingBefore + dim[1] + spacingAfter;
     }
 
@@ -65,7 +67,7 @@ public final class ImageContentElement implements ContentElement {
             return;
         }
 
-        float[] dim = fitDimensions(availableWidth, availableHeight);
+        float[] dim = resolveAndFit(availableWidth, availableHeight);
         float imgWidth = dim[0];
         float imgHeight = dim[1];
 
@@ -77,7 +79,7 @@ public final class ImageContentElement implements ContentElement {
                 ctx.markOverflow();
                 return;
             }
-            dim = fitDimensions(availableWidth, maxH);
+            dim = resolveAndFit(availableWidth, maxH);
             imgWidth = dim[0];
             imgHeight = dim[1];
         }
@@ -102,11 +104,36 @@ public final class ImageContentElement implements ContentElement {
     // ── Internals ────────────────────────────────────────────────────────
 
     /**
-     * Computes the dimensions that fit within {@code maxWidth × maxHeight}
-     * while maintaining the original aspect ratio.
+     * Resolves the effective image dimensions.
+     * <p>
+     * When an explicit {@code .size(w, h)} was provided, those dimensions are
+     * scaled to fit within {@code maxWidth x maxHeight} while maintaining the
+     * aspect ratio.
+     * </p>
+     * <p>
+     * When no explicit size was set, the image is scaled <strong>proportionally
+     * to the block's available width</strong>: the width is set to
+     * {@code maxWidth} and the height is derived from the source image's
+     * aspect ratio, then clamped to {@code maxHeight}.
+     * </p>
      */
-    private float[] fitDimensions(float maxWidth, float maxHeight) {
-        return ImageUtils.getScaledDimension(requestedWidth, requestedHeight,
+    private float[] resolveAndFit(float maxWidth, float maxHeight) {
+        float effectiveWidth;
+        float effectiveHeight;
+
+        if (explicitSize) {
+            // Use the caller-specified dimensions, scale to fit
+            effectiveWidth = requestedWidth;
+            effectiveHeight = requestedHeight;
+        } else {
+            // Proportional: fill available width, derive height from aspect ratio
+            float srcW = sourceImage.getWidth();
+            float srcH = sourceImage.getHeight();
+            effectiveWidth = maxWidth;
+            effectiveHeight = (srcH / srcW) * maxWidth;
+        }
+
+        return ImageUtils.getScaledDimension(effectiveWidth, effectiveHeight,
                 maxWidth, maxHeight);
     }
 
@@ -135,6 +162,7 @@ public final class ImageContentElement implements ContentElement {
         private String cacheKey;
         private float requestedWidth;
         private float requestedHeight;
+        private boolean explicitSize = false;
         private TextAlignment alignment = TextAlignment.LEFT;
         private float spacingBefore = 5f;
         private float spacingAfter = 5f;
@@ -222,10 +250,11 @@ public final class ImageContentElement implements ContentElement {
             return this;
         }
 
-        /** Sets desired dimensions in points. */
+        /** Sets desired dimensions in points, overriding proportional auto-sizing. */
         public Builder size(float width, float height) {
             this.requestedWidth = width;
             this.requestedHeight = height;
+            this.explicitSize = true;
             return this;
         }
 

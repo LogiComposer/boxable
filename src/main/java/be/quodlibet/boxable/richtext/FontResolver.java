@@ -2,6 +2,8 @@ package be.quodlibet.boxable.richtext;
 
 import be.quodlibet.boxable.FontSet;
 import be.quodlibet.boxable.FontStyle;
+import be.quodlibet.boxable.Standard14FontFamily;
+import be.quodlibet.boxable.utils.FontUtils;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
 import java.util.EnumSet;
@@ -9,8 +11,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Factory that resolves a {@link PDFont} from a {@link FontSet} (or default Helvetica)
- * based on a combination of {@link TextStyle} flags.
+ * Factory that resolves a {@link PDFont} from a {@link FontSet} (or the default
+ * font set provided by {@link FontUtils#getFontSet(Standard14FontFamily)}) based on a
+ * combination of {@link TextStyle} flags.
  * <p>
  * Results are cached so the same style combination always returns the same instance.
  * </p>
@@ -20,8 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class FontResolver {
 
-    /** Default body font family (Helvetica). */
-    private static final FontSet DEFAULT_BODY_FONT_SET = HeaderFont.HELVETICA.getFontSet();
+    /** Default body font family (from {@link FontUtils#getFontSet(Standard14FontFamily)}). */
+    private static final FontSet DEFAULT_BODY_FONT_SET = FontUtils.getFontSet(Standard14FontFamily.HELVETICA);
 
     /** Cache keyed by "fontSetIdentity|bold|italic". */
     private static final Map<String, PDFont> CACHE = new ConcurrentHashMap<>();
@@ -34,7 +37,7 @@ public final class FontResolver {
      * Resolves the correct {@link PDFont} variant from the given {@link FontSet}
      * based on bold/italic flags derived from the style set.
      *
-     * @param fontSet the font family (nullable — defaults to Helvetica)
+     * @param fontSet the font family (nullable — defaults to the default font set)
      * @param styles  the active text styles
      * @return the resolved PDFont
      */
@@ -56,25 +59,25 @@ public final class FontResolver {
     }
 
     /**
-     * Resolves a header font from a {@link HeaderFont} enum with explicit bold/italic.
+     * Resolves a header font from a {@link FontSet} with explicit bold/italic flags.
      *
-     * @param headerFont the header font family
-     * @param bold       whether bold
-     * @param italic     whether italic
+     * @param fontSet the font family (nullable — defaults to the default font set)
+     * @param bold    whether bold
+     * @param italic  whether italic
      * @return the resolved PDFont
      */
-    public static PDFont resolveHeader(HeaderFont headerFont, boolean bold, boolean italic) {
-        FontSet fontSet = (headerFont != null ? headerFont : HeaderFont.HELVETICA).getFontSet();
+    public static PDFont resolveHeader(FontSet fontSet, boolean bold, boolean italic) {
+        FontSet effective = fontSet != null ? fontSet : DEFAULT_BODY_FONT_SET;
         EnumSet<TextStyle> styles = EnumSet.noneOf(TextStyle.class);
         if (bold) styles.add(TextStyle.BOLD);
         if (italic) styles.add(TextStyle.ITALIC);
-        return resolve(fontSet, styles);
+        return resolve(effective, styles);
     }
 
     /**
      * Returns the default body {@link FontSet}.
      *
-     * @return Helvetica font set
+     * @return the default font set
      */
     public static FontSet getDefaultBodyFontSet() {
         return DEFAULT_BODY_FONT_SET;
