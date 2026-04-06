@@ -119,10 +119,12 @@ public final class TextContentElement implements ContentElement {
                 float prefixX = ctx.getLeft()
                         + (line.getListType() == ListType.BULLETED
                         ? BULLET_OFFSET : 0);
+                ctx.getStream().beginText();
                 ctx.getStream().setFont(prefixFont, fontSize);
                 ctx.getStream().setNonStrokingColor(java.awt.Color.BLACK);
                 ctx.getStream().newLineAt(prefixX, ctx.getCursorY());
                 ctx.getStream().showText(prefix);
+                ctx.getStream().endText();
             }
 
             // Render the visual line elements using the chosen alignment strategy

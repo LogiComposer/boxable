@@ -93,6 +93,7 @@ public final class JustifyAlignmentStrategy implements AlignmentStrategy {
                 stream.setFont(font, fontSize);
                 stream.newLineAt(currentX, y);
                 stream.showText(unit.word);
+                stream.endText();
 
                 if (seg.isUnderline()) {
                     SegmentRenderer.drawUnderline(ctx, currentX, y, unit.width);

@@ -50,10 +50,12 @@ final class SegmentRenderer {
         float fontSize = segment.getFontSize();
         String text = segment.getText();
 
+        stream.beginText();
         stream.setNonStrokingColor(segment.getColor());
         stream.setFont(font, fontSize);
         stream.newLineAt(x, y);
         stream.showText(text);
+        stream.endText();
 
         float width = WordWrapUtil.textWidth(text, font, fontSize);
 
