@@ -224,7 +224,7 @@ public class RichTextBlockTest {
             RichTextLine line = new RichTextLine(Collections.singletonList(
                     new RichTextSegment(
                             "Line " + i + ": Lorem ipsum dolor sit amet, " +
-                            "consectetur adipiscing elit."+
+                            "consectetur adipiscing elit. " +
                                     "This side block demonstrates that multiple RichTextBlocks " +
                                     "can be rendered independently on the same page. Each block " +
                                     "is confined to its own bounding rectangle.",

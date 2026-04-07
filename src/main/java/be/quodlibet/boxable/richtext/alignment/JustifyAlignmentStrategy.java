@@ -84,11 +84,17 @@ public final class JustifyAlignmentStrategy implements AlignmentStrategy {
             return;
         }
 
-        // Each gap gets at least the natural space width; extra space is distributed
-        // evenly on top. When totalGap < totalBaseSpace the base is scaled down but
-        // never below the 50% threshold guarded above.
-        float extraPerGap = (totalGap - totalBaseSpace) / gapCount;
-        float gapPerSpace = maxBaseSpaceWidth + Math.max(0, extraPerGap);
+        // Distribute spacing without exceeding the available width. If the available
+        // gap is smaller than the natural base spacing, scale gaps down uniformly
+        // (still guarded by the 50% readability threshold above). Otherwise, keep
+        // the natural space width and distribute any extra space evenly on top.
+        float gapPerSpace;
+        if (totalGap < totalBaseSpace) {
+            gapPerSpace = totalGap / gapCount;
+        } else {
+            float extraPerGap = (totalGap - totalBaseSpace) / gapCount;
+            gapPerSpace = maxBaseSpaceWidth + extraPerGap;
+        }
 
         // Render each unit with computed gaps
         float currentX = contentStartX;
