@@ -34,7 +34,7 @@ public class RichTextBlockTest {
                 PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
                 buildMainBlock().render(doc, stream, landscape.getHeight());
                 buildSideBlock().render(doc, stream, landscape.getHeight());
-                stream.close();
+                stream.endText();
             }
 
             buildOverflowBlock().renderOnNewPage(doc, PDRectangle.A4, false);
@@ -157,33 +157,34 @@ public class RichTextBlockTest {
 
         // Load JPG image from file
         File jpgFile = new File(
-                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI());
 
         // Load PNG image from InputStream
         InputStream pngStream = Objects.requireNonNull(
                 RichTextBlockTest.class.getResourceAsStream("/150dpi.png"));
+        // Load PNG image from InputStream (ensure it is closed via try-with-resources)
+        try (InputStream pngStream = Objects.requireNonNull(
+                RichTextBlockTest.class.getResourceAsStream("/150dpi.png"))) {
 
-        return RichTextBlock.builder()
-                .at(30, 30).size(370, 500)
-                .blockPadding(6f)
-                .header(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN), 16, "Quarterly Report Summary",
-                        TextAlignment.CENTER)
-                .addContent(new TextContentElement(paragraph))
-                .addContent(new TextContentElement(subtitle))
-                .addContent(new TextContentElement(dateLine))
-                // JPG image  proportionally scaled to block inner width
-                .addContent(new ImageContentElement.Builder(jpgFile)
-                        .alignment(TextAlignment.CENTER)
-                        .cacheKey("jpg-app-dev").build())
-                // PNG image  explicit size override
-                .addContent(new ImageContentElement.Builder(pngStream)
-                        .size(180, 55).alignment(TextAlignment.CENTER)
-                        .cacheKey("png-150dpi").build())
-                .addContent(new ListContentElement(ListType.BULLETED, bullets))
-                .addContent(new ListContentElement(ListType.NUMBERED, numbered))
-                .showOverflowIndicator(true)
-                .drawBorder(true)
-                .build();
+            return RichTextBlock.builder()
+                    .at(30, 30).size(370, 500)
+                    .header(HeaderFont.TIMES_ROMAN, 16, "Quarterly Report Summary",
+                            TextAlignment.CENTER)
+                    .addContent(new TextContentElement(paragraph))
+                    .addContent(new TextContentElement(subtitle))
+                    .addContent(new TextContentElement(dateLine))
+                    .addContent(new ImageContentElement.Builder(jpgFile)
+                            .size(200, 60).alignment(TextAlignment.CENTER)
+                            .cacheKey("jpg-app-dev").build())
+                    .addContent(new ImageContentElement.Builder(pngStream)
+                            .size(200, 60).alignment(TextAlignment.CENTER)
+                            .cacheKey("png-150dpi").build())
+                    .addContent(new ListContentElement(ListType.BULLETED, bullets))
+                    .addContent(new ListContentElement(ListType.NUMBERED, numbered))
+                    .showOverflowIndicator(true)
+                    .drawBorder(true)
+                    .build();
+        }
     }
 
     private RichTextBlock buildSideBlock() {
