@@ -62,18 +62,33 @@ public final class JustifyAlignmentStrategy implements AlignmentStrategy {
             return;
         }
 
-        // Compute total content width and gaps
+        // Compute total content width and base natural space width from font metrics
         float totalUnitWidth = 0;
+        float maxBaseSpaceWidth = 0;
         for (JustifyUnit u : units) {
             totalUnitWidth += u.width;
+            if (u.textSegment != null) {
+                float spaceWidth = WordWrapUtil.textWidth(" ", u.textSegment.resolveFont(), u.textSegment.getFontSize());
+                maxBaseSpaceWidth = Math.max(maxBaseSpaceWidth, spaceWidth);
+            }
         }
+
+        int gapCount = units.size() - 1;
         float totalGap = contentWidth - totalUnitWidth;
-        // If there is no positive gap to distribute, fall back to left alignment
-        if (totalGap <= 0) {
+        float totalBaseSpace = maxBaseSpaceWidth * gapCount;
+
+        // If there is no positive gap, or gaps would be smaller than half a natural
+        // word space, fall back to left alignment to keep text readable
+        if (totalGap <= 0 || totalGap < totalBaseSpace * 0.5f) {
             LeftAlignmentStrategy.INSTANCE.renderLine(ctx, elements, y, contentStartX, contentWidth);
             return;
         }
-        float gapPerSpace = totalGap / (units.size() - 1);
+
+        // Each gap gets at least the natural space width; extra space is distributed
+        // evenly on top. When totalGap < totalBaseSpace the base is scaled down but
+        // never below the 50% threshold guarded above.
+        float extraPerGap = (totalGap - totalBaseSpace) / gapCount;
+        float gapPerSpace = maxBaseSpaceWidth + Math.max(0, extraPerGap);
 
         // Render each unit with computed gaps
         float currentX = contentStartX;

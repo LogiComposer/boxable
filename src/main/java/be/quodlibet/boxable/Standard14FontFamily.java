@@ -42,6 +42,9 @@ public enum Standard14FontFamily {
     private final Standard14Fonts.FontName italic;
     private final Standard14Fonts.FontName boldItalic;
 
+    /** Lazily-initialised singleton so every call to {@link #toFontSet()} returns the same instance. */
+    private volatile FontSet cachedFontSet;
+
     Standard14FontFamily(String familyName,
                          Standard14Fonts.FontName regular,
                          Standard14Fonts.FontName bold,
@@ -58,16 +61,27 @@ public enum Standard14FontFamily {
     public String getFamilyName() { return familyName; }
 
     /**
-     * Creates a new {@link FontSet} from this font family's four variants.
+     * Returns a shared {@link FontSet} singleton for this font family's four variants.
+     * The instance is created lazily on first access and reused for all subsequent calls.
      *
-     * @return a fully populated FontSet
+     * @return a fully populated FontSet (always the same instance per enum constant)
      */
     public FontSet toFontSet() {
-        return new FontSet(familyName,
-                new PDType1Font(regular),
-                new PDType1Font(bold),
-                new PDType1Font(italic),
-                new PDType1Font(boldItalic));
+        FontSet result = cachedFontSet;
+        if (result == null) {
+            synchronized (this) {
+                result = cachedFontSet;
+                if (result == null) {
+                    result = new FontSet(familyName,
+                            new PDType1Font(regular),
+                            new PDType1Font(bold),
+                            new PDType1Font(italic),
+                            new PDType1Font(boldItalic));
+                    cachedFontSet = result;
+                }
+            }
+        }
+        return result;
     }
 }
 

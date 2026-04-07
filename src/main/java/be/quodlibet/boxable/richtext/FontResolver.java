@@ -26,7 +26,7 @@ public final class FontResolver {
     /** Default body font family (from {@link FontUtils#getFontSet(Standard14FontFamily)}). */
     private static final FontSet DEFAULT_BODY_FONT_SET = FontUtils.getFontSet(Standard14FontFamily.HELVETICA);
 
-    /** Cache keyed by "fontSetIdentity|bold|italic". */
+    /** Cache keyed by "familyName|FONT_STYLE". */
     private static final Map<String, PDFont> CACHE = new ConcurrentHashMap<>();
 
     private FontResolver() {
@@ -44,7 +44,7 @@ public final class FontResolver {
     public static PDFont resolve(FontSet fontSet, EnumSet<TextStyle> styles) {
         final FontSet effectiveFontSet = (fontSet != null) ? fontSet : DEFAULT_BODY_FONT_SET;
         FontStyle fs = toFontStyle(styles);
-        String key = System.identityHashCode(effectiveFontSet) + "|" + fs.name();
+        String key = effectiveFontSet.getFamilyName() + "|" + fs.name();
         return CACHE.computeIfAbsent(key, k -> effectiveFontSet.getFont(fs));
     }
 
