@@ -69,9 +69,13 @@ public final class HeaderContentElement implements ContentElement {
     public float estimateHeight(float availableWidth) throws IOException {
         PDFont font = resolveFont();
         List<String> wrapped = WordWrapUtil.wrap(text, font, fontSize, availableWidth);
-        float lineHeight = fontSize * LINE_SPACING;
-        // Each wrapped line + extra spacing after heading
-        return lineHeight * wrapped.size() + fontSize * 0.3f;
+        // Each wrapped line contributes fontSize of text height
+        float total = fontSize * wrapped.size();
+        // Inter-line spacing between consecutive wrapped lines only
+        total += fontSize * 0.3f * Math.max(0, wrapped.size() - 1);
+        // Post-header gap (spacing to next content element)
+        total += fontSize * 0.3f;
+        return total;
     }
 
     @Override
@@ -82,7 +86,8 @@ public final class HeaderContentElement implements ContentElement {
         List<String> wrappedLines = WordWrapUtil.wrap(text, font, fontSize,
                 ctx.getInnerWidth());
 
-        for (String line : wrappedLines) {
+        for (int i = 0; i < wrappedLines.size(); i++) {
+            String line = wrappedLines.get(i);
             float lineHeight = fontSize * LINE_SPACING;
             if (!ctx.hasSpace(lineHeight)) {
                 ctx.markOverflow();
@@ -109,10 +114,13 @@ public final class HeaderContentElement implements ContentElement {
             stream.lineTo(xPos + textWidth, ctx.getCursorY() + UNDERLINE_OFFSET);
             stream.stroke();
 
-            ctx.advanceCursor(fontSize * 0.3f);
+            // Inter-line spacing only between consecutive wrapped lines
+            if (i < wrappedLines.size() - 1) {
+                ctx.advanceCursor(fontSize * 0.3f);
+            }
         }
 
-        // Extra spacing after header
+        // Extra spacing after header (gap to next content element)
         ctx.advanceCursor(fontSize * 0.3f);
     }
 

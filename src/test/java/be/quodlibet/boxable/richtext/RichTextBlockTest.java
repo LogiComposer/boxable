@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -24,6 +25,26 @@ import java.util.Objects;
 
 public class RichTextBlockTest {
 
+    /**
+     * Creates a spacer {@link TextContentElement} consisting of {@code lines}
+     * blank visual lines at the given font size.  Insert this between content
+     * elements to simulate paragraph breaks without modifying
+     * {@link RichTextBlock} itself.
+     *
+     * @param lines    the number of blank lines (each adds {@code fontSize × 1.4} pt of vertical space)
+     * @param fontSize the font size that controls line height
+     */
+    private static TextContentElement paragraphBreak(int lines, float fontSize) {
+        List<RichTextLine> spacerLines = new ArrayList<>();
+        for (int i = 0; i < lines; i++) {
+            spacerLines.add(new RichTextLine(
+                    Collections.singletonList(
+                            new RichTextSegment(" ", EnumSet.noneOf(TextStyle.class), fontSize)),
+                    ListType.NONE, 0, TextAlignment.LEFT));
+        }
+        return new TextContentElement(spacerLines);
+    }
+
     @Test
     public void testFullRichTextBlockRendering() throws IOException {
         try (PDDocument doc = new PDDocument()) {
@@ -32,11 +53,14 @@ public class RichTextBlockTest {
             PDPage page1 = new PDPage(landscape);
             doc.addPage(page1);
 
-            try (PDPageContentStream raw = new PDPageContentStream(doc, page1)) {
-                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+            PageContentStreamOptimized stream = new PageContentStreamOptimized(
+                    new PDPageContentStream(doc, page1));
+            try {
                 buildMainBlock().render(doc, stream, landscape.getHeight());
                 buildSideBlock().render(doc, stream, landscape.getHeight());
                 stream.endText();
+            } finally {
+                stream.close();
             }
 
             buildOverflowBlock().renderOnNewPage(doc, PDRectangle.A4, false);
@@ -51,8 +75,9 @@ public class RichTextBlockTest {
             PDPage page = new PDPage(pageSize);
             doc.addPage(page);
 
-            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
-                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+            PageContentStreamOptimized stream = new PageContentStreamOptimized(
+                    new PDPageContentStream(doc, page));
+            try {
 
                 //  Block 1: Narrow block (150pt wide) with long text
                 RichTextLine longLine = new RichTextLine(Arrays.asList(
@@ -109,7 +134,7 @@ public class RichTextBlockTest {
                         .drawBorder(true)
                         .build();
                 longWordBlock.render(doc, stream, pageSize.getHeight());
-
+            } finally {
                 stream.close();
             }
 
@@ -170,15 +195,21 @@ public class RichTextBlockTest {
                     .header(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN), 16, "Quarterly Report Summary",
                             TextAlignment.CENTER)
                     .addContent(new TextContentElement(paragraph))
+                    .addContent(paragraphBreak(1, 10f))
                     .addContent(new TextContentElement(subtitle))
+                    .addContent(paragraphBreak(1, 10f))
                     .addContent(new TextContentElement(dateLine))
+                    .addContent(paragraphBreak(1, 10f))
                     .addContent(new ImageContentElement.Builder(jpgFile)
                             .size(200, 60).alignment(TextAlignment.CENTER)
                             .cacheKey("jpg-app-dev").build())
+                    .addContent(paragraphBreak(1, 10f))
                     .addContent(new ImageContentElement.Builder(pngStream)
                             .size(200, 60).alignment(TextAlignment.CENTER)
                             .cacheKey("png-150dpi").build())
+                    .addContent(paragraphBreak(1, 10f))
                     .addContent(new ListContentElement(ListType.BULLETED, bullets))
+                    .addContent(paragraphBreak(1, 10f))
                     .addContent(new ListContentElement(ListType.NUMBERED, numbered))
                     .showOverflowIndicator(true)
                     .drawBorder(true)
@@ -205,6 +236,7 @@ public class RichTextBlockTest {
                 .blockPadding(10f)
                 .header(FontUtils.getFontSet(Standard14FontFamily.COURIER), 12, "Side Notes", TextAlignment.LEFT)
                 .addContent(new TextContentElement(justifiedParagraph))
+                .addContent(paragraphBreak(1, 9f))
                 .addContent(new TextContentElement(note))
                 .showOverflowIndicator(true)
                 .drawBorder(true)
@@ -251,8 +283,9 @@ public class RichTextBlockTest {
             PDPage page = new PDPage(pageSize);
             doc.addPage(page);
 
-            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
-                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+            PageContentStreamOptimized stream = new PageContentStreamOptimized(
+                    new PDPageContentStream(doc, page));
+            try {
 
                 RichTextLine middleLine = new RichTextLine(Arrays.asList(
                         new RichTextSegment("Revenue grew by ",
@@ -335,10 +368,9 @@ public class RichTextBlockTest {
                         .build();
 
                 block.render(doc, stream, pageSize.getHeight());
+            } finally {
                 stream.close();
             }
-
-            doc.save(new File("target/InlineImageDemo.pdf"));
         }
     }
 
@@ -449,7 +481,9 @@ public class RichTextBlockTest {
                         .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Multi-Paragraph Alignment Demo", TextAlignment.CENTER)
                         .addContent(new TextContentElement(leftPara))
+                        .addContent(paragraphBreak(1, 10f))
                         .addContent(new TextContentElement(rightPara))
+                        .addContent(paragraphBreak(1, 10f))
                         .addContent(new TextContentElement(centerPara))
                         .drawBorder(true)
                         .build();
@@ -529,9 +563,13 @@ public class RichTextBlockTest {
                         .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 14,
                                 "Mixed Formatting Combinations", TextAlignment.LEFT)
                         .addContent(new TextContentElement(boldItalic))
+                        .addContent(paragraphBreak(1, 11f))
                         .addContent(new TextContentElement(boldUnderline))
+                        .addContent(paragraphBreak(1, 11f))
                         .addContent(new TextContentElement(italicUnderline))
+                        .addContent(paragraphBreak(1, 11f))
                         .addContent(new TextContentElement(allThree))
+                        .addContent(paragraphBreak(1, 10f))
                         .addContent(new TextContentElement(mixedLine))
                         .drawBorder(true)
                         .build();
@@ -627,7 +665,7 @@ public class RichTextBlockTest {
 
                 RichTextBlock block = RichTextBlock.builder()
                         .at(40, 30).size(500, 700)
-                        .blockPadding(15f)
+                        //.blockPadding(15f)
                         .addContent(h1)
                         .addContent(new TextContentElement(bodyLine1))
                         .addContent(h2)
@@ -994,7 +1032,9 @@ public class RichTextBlockTest {
                                 outputName.replace('_', ' ') + " - Landscape Demo",
                                 TextAlignment.CENTER)
                         .addContent(new TextContentElement(leftPara))
+                        .addContent(paragraphBreak(1, 11f))
                         .addContent(new TextContentElement(rightPara))
+                        .addContent(paragraphBreak(1, 11f))
                         .addContent(new TextContentElement(centerPara))
                         .drawBorder(true)
                         .build();

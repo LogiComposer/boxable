@@ -189,7 +189,8 @@ public final class RichTextBlock {
         List<String> headerLines = WordWrapUtil.wrap(headerText, font, fontSize,
                 ctx.getInnerWidth());
 
-        for (String line : headerLines) {
+        for (int i = 0; i < headerLines.size(); i++) {
+            String line = headerLines.get(i);
             float lineHeight = fontSize * LINE_SPACING;
             if (!ctx.hasSpace(lineHeight)) {
                 ctx.markOverflow();
@@ -216,7 +217,10 @@ public final class RichTextBlock {
             stream.lineTo(xPos + textWidth, ctx.getCursorY() + UNDERLINE_OFFSET);
             stream.stroke();
 
-            ctx.advanceCursor(fontSize * 0.3f);
+            // Inter-line spacing only between consecutive wrapped lines
+            if (i < headerLines.size() - 1) {
+                ctx.advanceCursor(fontSize * 0.3f);
+            }
         }
 
         // Extra spacing after header
@@ -284,11 +288,12 @@ public final class RichTextBlock {
         if (headerText != null && !headerText.isEmpty()) {
             PDFont font = FontResolver.resolveHeader(headerFont, true, false);
             List<String> headerLines = WordWrapUtil.wrap(headerText, font, headerFontSize, innerWidth);
-            for (int i = 0; i < headerLines.size(); i++) {
-                total += headerFontSize;           // advanceCursor(fontSize)
-                total += headerFontSize * 0.3f;    // advanceCursor(fontSize * 0.3f)
-            }
-            total += headerFontSize * 0.3f;        // extra spacing after header
+            // Each wrapped line contributes fontSize of text height
+            total += headerFontSize * headerLines.size();
+            // Inter-line spacing between consecutive wrapped lines only
+            total += headerFontSize * 0.3f * Math.max(0, headerLines.size() - 1);
+            // Post-header gap
+            total += headerFontSize * 0.3f;
         }
 
         // Content elements contribution
@@ -437,4 +442,3 @@ public final class RichTextBlock {
         }
     }
 }
-
