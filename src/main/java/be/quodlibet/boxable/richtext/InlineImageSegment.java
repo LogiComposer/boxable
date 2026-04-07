@@ -86,6 +86,11 @@ public final class InlineImageSegment implements LineElement {
     /**
      * Creates an inline image from an {@link InputStream} (PNG, JPEG, etc.).
      *
+     * @apiNote The caller is responsible for closing the stream after construction.
+     *          This method fully reads the stream into a {@link BufferedImage}
+     *          but does not close it, following the standard Java convention that
+     *          the opener of a resource is responsible for its lifecycle.
+     *
      * @param inputStream the image data stream
      * @param widthPt     display width in points
      * @param heightPt    display height in points
@@ -121,7 +126,12 @@ public final class InlineImageSegment implements LineElement {
         if (commaIdx >= 0 && base64.substring(0, commaIdx).contains("base64")) {
             raw = base64.substring(commaIdx + 1);
         }
-        byte[] bytes = Base64.getDecoder().decode(raw);
+        byte[] bytes;
+        try {
+            bytes = Base64.getDecoder().decode(raw);
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Invalid Base64 image data", e);
+        }
         BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
         if (img == null) {
             throw new IOException("Unsupported or unreadable image from Base64 string");

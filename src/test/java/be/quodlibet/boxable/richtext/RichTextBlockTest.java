@@ -9,6 +9,8 @@ import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.junit.Test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -454,7 +456,7 @@ public class RichTextBlockTest {
 
                 float finalY = block.render(doc, stream, pageSize.getHeight());
                 // Verify render() returns a usable Y-position
-                assert finalY > 0 : "render() should return a positive final Y position";
+                assertTrue("render() should return a positive final Y position", finalY > 0);
                 stream.close();
             }
 
@@ -535,7 +537,7 @@ public class RichTextBlockTest {
                         .build();
 
                 float finalY = block.render(doc, stream, pageSize.getHeight());
-                assert finalY > 0 : "render() should return a positive final Y";
+                assertTrue("render() should return a positive final Y", finalY > 0);
                 stream.close();
             }
 
@@ -636,7 +638,7 @@ public class RichTextBlockTest {
                         .build();
 
                 float finalY = block.render(doc, stream, pageSize.getHeight());
-                assert finalY > 0 : "render() should return a positive final Y";
+                assertTrue("render() should return a positive final Y", finalY > 0);
                 stream.close();
             }
 
@@ -677,7 +679,7 @@ public class RichTextBlockTest {
                         .build();
 
                 float finalY = block.render(doc, stream, pageSize.getHeight());
-                assert finalY > 0 : "render() should return a positive final Y";
+                assertTrue("render() should return a positive final Y", finalY > 0);
                 stream.close();
             }
 
@@ -752,7 +754,7 @@ public class RichTextBlockTest {
                         .build();
 
                 float finalY = block.render(doc, stream, pageSize.getHeight());
-                assert finalY > 0 : "render() should return a positive final Y";
+                assertTrue("render() should return a positive final Y", finalY > 0);
                 stream.close();
             }
 
@@ -861,7 +863,7 @@ public class RichTextBlockTest {
                         .build();
 
                 float finalY = block.render(doc, stream, pageSize.getHeight());
-                assert finalY > 0 : "render() should return a positive final Y";
+                assertTrue("render() should return a positive final Y", finalY > 0);
                 stream.close();
             }
 
@@ -998,12 +1000,155 @@ public class RichTextBlockTest {
                         .build();
 
                 float finalY = block.render(doc, stream, pageH);
-                assert finalY > 0 : "render() should return a positive final Y on landscape "
-                        + outputName;
+                assertTrue("render() should return a positive final Y on landscape "
+                        + outputName, finalY > 0);
                 stream.close();
             }
 
             doc.save(new File("target/" + outputName + ".pdf"));
+        }
+    }
+
+    /**
+     * Verifies that three RichTextBlocks can be stacked vertically by using
+     * the Y-position returned from {@code render()} to position the next block
+     * immediately below the previous one.
+     */
+    @Test
+    public void testChainedBlocksUsingReturnedYPosition() throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDRectangle pageSize = PDRectangle.A4;
+            PDPage page = new PDPage(pageSize);
+            doc.addPage(page);
+            float pageHeight = pageSize.getHeight();
+
+            try (PDPageContentStream raw = new PDPageContentStream(doc, page)) {
+                PageContentStreamOptimized stream = new PageContentStreamOptimized(raw);
+
+                float blockX = 40f;
+                float blockWidth = pageSize.getWidth() - 2 * blockX;
+                float blockGap = 15f; // visible gap between consecutive blocks
+                float currentTopDownY = 30f; // starting Y from top of page
+
+                // Block 1: Introduction
+                RichTextLine introLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "This is the first block in a chain of three. The render() " +
+                                "method returns the final PDF Y-coordinate so callers can " +
+                                "position the next element directly below. This paragraph has " +
+                                "enough text to span multiple lines and demonstrate that the " +
+                                "returned Y accounts for all rendered content including the " +
+                                "header and body text.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.LEFT);
+
+                // Block 1: header + short paragraph → 150pt is ample
+                float block1Height = 150f;
+                RichTextBlock block1 = RichTextBlock.builder()
+                        .at(blockX, currentTopDownY)
+                        .size(blockWidth, block1Height)
+                        .blockPadding(8f)
+                        .header(FontUtils.getFontSet(Standard14FontFamily.HELVETICA), 13,
+                                "Block 1: Introduction", TextAlignment.LEFT)
+                        .addContent(new TextContentElement(introLine))
+                        .drawBorder(true)
+                        .build();
+
+                float pdfY1 = block1.render(doc, stream, pageHeight);
+                assertTrue("Block 1 should return a positive Y", pdfY1 > 0);
+
+                // Position next block after the full block bounds (not just cursor)
+                // to avoid overlapping the block's border rectangle.
+                // Block 1 occupies [currentTopDownY .. currentTopDownY + block1Height].
+                currentTopDownY = currentTopDownY + block1Height + blockGap;
+
+                // Block 2: Details (bold + italic mixed content)
+                RichTextLine detailLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment("Key finding: ",
+                                EnumSet.of(TextStyle.BOLD), 10f),
+                        new RichTextSegment("The second block starts exactly where the first " +
+                                "block ended. It uses mixed formatting to verify that styled " +
+                                "text renders correctly in a chained layout. ",
+                                EnumSet.noneOf(TextStyle.class), 10f),
+                        new RichTextSegment("Italic emphasis ",
+                                EnumSet.of(TextStyle.ITALIC), 10f),
+                        new RichTextSegment("is also supported within the same line, and " +
+                                "word-wrapping respects style boundaries across visual lines.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.JUSTIFY);
+
+                List<RichTextLine> bullets = Arrays.asList(
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Revenue increased by 25%",
+                                        EnumSet.noneOf(TextStyle.class), 9f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Customer base grew by 18%",
+                                        EnumSet.of(TextStyle.BOLD), 9f)),
+                                ListType.NONE, 0),
+                        new RichTextLine(Collections.singletonList(
+                                new RichTextSegment("Operating costs reduced by 7%",
+                                        EnumSet.of(TextStyle.ITALIC), 9f)),
+                                ListType.NONE, 0));
+
+                // Block 2: header + paragraph + 3 bullet items → 220pt
+                float block2Height = 220f;
+                RichTextBlock block2 = RichTextBlock.builder()
+                        .at(blockX, currentTopDownY)
+                        .size(blockWidth, block2Height)
+                        .blockPadding(8f)
+                        .header(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN), 13,
+                                "Block 2: Key Metrics", TextAlignment.LEFT)
+                        .addContent(new TextContentElement(detailLine))
+                        .addContent(new ListContentElement(ListType.BULLETED, bullets))
+                        .drawBorder(true)
+                        .build();
+
+                float pdfY2 = block2.render(doc, stream, pageHeight);
+                assertTrue("Block 2 should return a positive Y", pdfY2 > 0);
+                assertTrue("Block 2 Y should be below Block 1 Y", pdfY2 < pdfY1);
+
+                // Position next block after the full block 2 bounds
+                currentTopDownY = currentTopDownY + block2Height + blockGap;
+
+                // Block 3: Conclusion (centre-aligned)
+                RichTextLine conclusionLine = new RichTextLine(Arrays.asList(
+                        new RichTextSegment(
+                                "This third and final block demonstrates that an arbitrary " +
+                                "number of blocks can be chained vertically on the same page " +
+                                "by passing the returned Y-position forward. The layout engine " +
+                                "guarantees no overlap between consecutive blocks as long as " +
+                                "each block's top-down Y is derived from the previous render " +
+                                "return value.",
+                                EnumSet.noneOf(TextStyle.class), 10f)
+                ), ListType.NONE, 0, TextAlignment.CENTER);
+
+                RichTextLine signOff = new RichTextLine(Collections.singletonList(
+                        new RichTextSegment("-- End of Report --",
+                                EnumSet.of(TextStyle.ITALIC, TextStyle.UNDERLINE), 9f)),
+                        ListType.NONE, 0, TextAlignment.CENTER);
+
+                // Block 3: conclusion + sign-off → use remaining page space
+                float block3Height = Math.min(200f, pageHeight - currentTopDownY - 20f);
+                RichTextBlock block3 = RichTextBlock.builder()
+                        .at(blockX, currentTopDownY)
+                        .size(blockWidth, block3Height)
+                        .blockPadding(8f)
+                        .header(FontUtils.getFontSet(Standard14FontFamily.COURIER), 13,
+                                "Block 3: Conclusion", TextAlignment.CENTER)
+                        .addContent(new TextContentElement(conclusionLine))
+                        .addContent(new TextContentElement(signOff))
+                        .drawBorder(true)
+                        .build();
+
+                float pdfY3 = block3.render(doc, stream, pageHeight);
+                assertTrue("Block 3 should return a positive Y", pdfY3 > 0);
+                assertTrue("Block 3 Y should be below Block 2 Y", pdfY3 < pdfY2);
+
+                stream.close();
+            }
+
+            doc.save(new File("target/ChainedBlocksDemo.pdf"));
         }
     }
 

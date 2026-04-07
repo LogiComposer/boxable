@@ -197,12 +197,17 @@ public final class ImageContentElement implements ContentElement {
         }
 
         /**
-         * Creates a Builder from an {@link InputStream} (supports any format that
-         * {@link ImageIO} can read, including PNG and JPEG/JPG).
-         *
-         * @param inputStream the input stream containing image data
-         * @throws IOException if reading the stream fails
-         */
+        * Creates a Builder from an {@link InputStream} (supports any format that
+        * {@link ImageIO} can read, including PNG and JPEG/JPG).
+        *
+        * @apiNote The caller is responsible for closing the stream after construction.
+        *          This constructor fully reads the stream into a {@link BufferedImage}
+        *          but does not close it, following the standard Java convention that
+        *          the opener of a resource is responsible for its lifecycle.
+        *
+        * @param inputStream the input stream containing image data
+        * @throws IOException if reading the stream fails
+        */
         public Builder(InputStream inputStream) throws IOException {
             Objects.requireNonNull(inputStream, "inputStream");
             this.sourceImage = ImageIO.read(inputStream);
@@ -234,7 +239,12 @@ public final class ImageContentElement implements ContentElement {
             if (commaIndex >= 0 && base64.substring(0, commaIndex).contains("base64")) {
                 rawBase64 = base64.substring(commaIndex + 1);
             }
-            byte[] bytes = Base64.getDecoder().decode(rawBase64);
+            byte[] bytes;
+            try {
+                bytes = Base64.getDecoder().decode(rawBase64);
+            } catch (IllegalArgumentException e) {
+                throw new IOException("Invalid Base64 image data", e);
+            }
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
             if (img == null) {
                 throw new IOException("Unsupported or unreadable image format from Base64 string");
