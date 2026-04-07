@@ -157,18 +157,15 @@ public class RichTextBlockTest {
 
         // Load JPG image from file
         File jpgFile = new File(
-                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI());
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
 
-        // Load PNG image from InputStream
-        InputStream pngStream = Objects.requireNonNull(
-                RichTextBlockTest.class.getResourceAsStream("/150dpi.png"));
         // Load PNG image from InputStream (ensure it is closed via try-with-resources)
         try (InputStream pngStream = Objects.requireNonNull(
                 RichTextBlockTest.class.getResourceAsStream("/150dpi.png"))) {
 
             return RichTextBlock.builder()
                     .at(30, 30).size(370, 500)
-                    .header(HeaderFont.TIMES_ROMAN, 16, "Quarterly Report Summary",
+                    .header(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN), 16, "Quarterly Report Summary",
                             TextAlignment.CENTER)
                     .addContent(new TextContentElement(paragraph))
                     .addContent(new TextContentElement(subtitle))

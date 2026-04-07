@@ -164,10 +164,13 @@ public final class RichTextBlock {
         PDPage page = new PDPage(effective);
         document.addPage(page);
 
-        try (PageContentStreamOptimized stream =
-                     new PageContentStreamOptimized(new PDPageContentStream(document, page))) {
+        PageContentStreamOptimized stream =
+                new PageContentStreamOptimized(new PDPageContentStream(document, page));
+        try {
             float finalY = render(document, stream, effective.getHeight());
             return finalY;
+        } finally {
+            stream.close();
         }
     }
 
