@@ -142,7 +142,10 @@ public final class RichTextBlock {
         // Ensure text mode is closed
         stream.endText();
 
-        return ctx.getCursorY();
+        // Return the lower of cursor position and block bottom so that
+        // chained blocks never overlap even when content is shorter than
+        // the declared block height.
+        return Math.min(ctx.getCursorY(), pdfBottom);
     }
 
     /**
@@ -253,6 +256,50 @@ public final class RichTextBlock {
             case RIGHT:  return regionStart + regionWidth - contentWidth;
             default:     return regionStart;
         }
+    }
+
+    // ── Content height estimation ────────────────────────────────────────
+
+    /**
+     * Estimates the total height this block's content (header + body elements +
+     * padding) would consume if there were no height limit.
+     * <p>
+     * Callers can use this to size the block to exactly fit its content:
+     * <pre>{@code
+     * RichTextBlock.Builder b = RichTextBlock.builder()
+     *         .at(x, y).size(width, 9999f) // temporary large height
+     *         .addContent(...);
+     * float h = b.build().estimateContentHeight();
+     * RichTextBlock block = b.size(width, h).build();
+     * }</pre>
+     *
+     * @return the estimated content height in points (including top and bottom padding)
+     * @throws IOException if font metrics cannot be read
+     */
+    public float estimateContentHeight() throws IOException {
+        float innerWidth = blockWidth - 2 * blockPadding;
+        float total = 0;
+
+        // Header contribution
+        if (headerText != null && !headerText.isEmpty()) {
+            PDFont font = FontResolver.resolveHeader(headerFont, true, false);
+            List<String> headerLines = WordWrapUtil.wrap(headerText, font, headerFontSize, innerWidth);
+            for (int i = 0; i < headerLines.size(); i++) {
+                total += headerFontSize;           // advanceCursor(fontSize)
+                total += headerFontSize * 0.3f;    // advanceCursor(fontSize * 0.3f)
+            }
+            total += headerFontSize * 0.3f;        // extra spacing after header
+        }
+
+        // Content elements contribution
+        for (ContentElement element : content) {
+            total += element.estimateHeight(innerWidth);
+        }
+
+        // Top + bottom padding
+        total += 2 * blockPadding;
+
+        return total;
     }
 
     // ── Getters ──────────────────────────────────────────────────────────
