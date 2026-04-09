@@ -263,7 +263,7 @@ RichTextBlock.builder()
         .build();
 ```
 
-The header supports all four alignments (`LEFT`, `CENTER`, `RIGHT`, `JUSTIFY`) and uses the font family from the provided `FontSet`. Long header text is automatically word-wrapped within the block width.
+The header supports `LEFT`, `CENTER`, and `RIGHT` alignment and uses the font family from the provided `FontSet`. `TextAlignment.JUSTIFY` is not currently applied for block-level headers and falls back to left alignment. Long header text is automatically word-wrapped within the block width.
 
 ---
 
