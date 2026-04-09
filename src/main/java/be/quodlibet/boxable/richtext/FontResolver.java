@@ -2,7 +2,6 @@ package be.quodlibet.boxable.richtext;
 
 import be.quodlibet.boxable.FontSet;
 import be.quodlibet.boxable.FontStyle;
-import be.quodlibet.boxable.Standard14FontFamily;
 import be.quodlibet.boxable.utils.FontUtils;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
@@ -12,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Factory that resolves a {@link PDFont} from a {@link FontSet} (or the default
- * font set provided by {@link FontUtils#getFontSet(Standard14FontFamily)}) based on a
+ * font set provided by {@link FontUtils#getDefaultFontSet()}) based on a
  * combination of {@link TextStyle} flags.
  * <p>
  * Results are cached so the same style combination always returns the same instance.
@@ -23,14 +22,22 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class FontResolver {
 
-    /** Default body font family (from {@link FontUtils#getFontSet(Standard14FontFamily)}). */
-    private static final FontSet DEFAULT_BODY_FONT_SET = FontUtils.getFontSet(Standard14FontFamily.HELVETICA);
-
     /** Cache keyed by "familyName|FONT_STYLE". */
     private static final Map<String, PDFont> CACHE = new ConcurrentHashMap<>();
 
     private FontResolver() {
         // utility class
+    }
+
+    /**
+     * Returns the default body {@link FontSet} by delegating to
+     * {@link FontUtils#getDefaultFontSet()}, so that any fonts registered
+     * via {@link FontUtils#addDefaultFonts} are respected.
+     *
+     * @return the current default font set
+     */
+    private static FontSet getDefaultBodyFontSet() {
+        return FontUtils.getDefaultFontSet();
     }
 
     /**
@@ -42,7 +49,7 @@ public final class FontResolver {
      * @return the resolved PDFont
      */
     public static PDFont resolve(FontSet fontSet, EnumSet<TextStyle> styles) {
-        final FontSet effectiveFontSet = (fontSet != null) ? fontSet : DEFAULT_BODY_FONT_SET;
+        final FontSet effectiveFontSet = (fontSet != null) ? fontSet : getDefaultBodyFontSet();
         FontStyle fs = toFontStyle(styles);
         String key = effectiveFontSet.getFamilyName() + "|" + fs.name();
         return CACHE.computeIfAbsent(key, k -> effectiveFontSet.getFont(fs));
@@ -55,7 +62,7 @@ public final class FontResolver {
      * @return the resolved PDFont
      */
     public static PDFont resolve(EnumSet<TextStyle> styles) {
-        return resolve(DEFAULT_BODY_FONT_SET, styles);
+        return resolve(getDefaultBodyFontSet(), styles);
     }
 
     /**
@@ -67,20 +74,11 @@ public final class FontResolver {
      * @return the resolved PDFont
      */
     public static PDFont resolveHeader(FontSet fontSet, boolean bold, boolean italic) {
-        FontSet effective = fontSet != null ? fontSet : DEFAULT_BODY_FONT_SET;
+        FontSet effective = fontSet != null ? fontSet : getDefaultBodyFontSet();
         EnumSet<TextStyle> styles = EnumSet.noneOf(TextStyle.class);
         if (bold) styles.add(TextStyle.BOLD);
         if (italic) styles.add(TextStyle.ITALIC);
         return resolve(effective, styles);
-    }
-
-    /**
-     * Returns the default body {@link FontSet}.
-     *
-     * @return the default font set
-     */
-    public static FontSet getDefaultBodyFontSet() {
-        return DEFAULT_BODY_FONT_SET;
     }
 
     private static FontStyle toFontStyle(EnumSet<TextStyle> styles) {
