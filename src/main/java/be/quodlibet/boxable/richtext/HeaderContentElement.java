@@ -101,6 +101,7 @@ public final class HeaderContentElement implements ContentElement {
                     ctx.getInnerWidth(), alignment);
 
             PageContentStreamOptimized stream = ctx.getStream();
+            stream.beginText();
             stream.setNonStrokingColor(Color.BLACK);
             stream.setFont(font, fontSize);
             stream.newLineAt(xPos, ctx.getCursorY());

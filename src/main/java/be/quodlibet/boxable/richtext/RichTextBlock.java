@@ -204,6 +204,7 @@ public final class RichTextBlock {
                     ctx.getInnerWidth(), align);
 
             PageContentStreamOptimized stream = ctx.getStream();
+            stream.beginText();
             stream.setNonStrokingColor(Color.BLACK);
             stream.setFont(font, fontSize);
             stream.newLineAt(xPos, ctx.getCursorY());
