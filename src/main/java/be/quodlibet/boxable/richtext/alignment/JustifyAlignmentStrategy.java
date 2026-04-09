@@ -96,7 +96,10 @@ public final class JustifyAlignmentStrategy implements AlignmentStrategy {
             gapPerSpace = maxBaseSpaceWidth + extraPerGap;
         }
 
-        // Render each unit with computed gaps
+        // Render each unit with computed gaps.
+        // Text mode (BT..ET) is kept open across consecutive text words so that
+        // a single text object can contain multiple Td/Tj pairs, significantly
+        // reducing content-stream size for long justified lines.
         float currentX = contentStartX;
         PageContentStreamOptimized stream = ctx.getStream();
 
@@ -104,17 +107,32 @@ public final class JustifyAlignmentStrategy implements AlignmentStrategy {
             JustifyUnit unit = units.get(i);
 
             if (unit.imageSegment != null) {
+                // renderInlineImage calls endText() internally before drawing
                 SegmentRenderer.renderInlineImage(ctx, unit.imageSegment, currentX, y);
             } else {
                 RichTextSegment seg = unit.textSegment;
                 PDFont font = seg.resolveFont();
                 float fontSize = seg.getFontSize();
 
+                // beginText() is idempotent: opens BT only if not already in
+                // text mode, so consecutive words share a single text object.
+                stream.beginText();
                 stream.setNonStrokingColor(seg.getColor());
                 stream.setFont(font, fontSize);
                 stream.newLineAt(currentX, y);
                 stream.showText(unit.word);
-                stream.endText();
+
+                // Close the text object only when we must leave text mode:
+                //  - underline requires stroke operations (graphics mode)
+                //  - next unit is an image (drawImage requires graphics mode)
+                //  - last unit on the line (clean up)
+                boolean needsBreak = seg.isUnderline()
+                        || (i + 1 < units.size() && units.get(i + 1).imageSegment != null)
+                        || i == units.size() - 1;
+
+                if (needsBreak) {
+                    stream.endText();
+                }
 
                 if (seg.isUnderline()) {
                     SegmentRenderer.drawUnderline(ctx, currentX, y, unit.width);
