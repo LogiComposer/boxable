@@ -233,9 +233,9 @@ public final class RichTextBlock {
         float indicatorSize = 8f;
         PDFont font = FontResolver.resolve(EnumSet.noneOf(TextStyle.class));
         PageContentStreamOptimized stream = ctx.getStream();
-        stream.setFont(font, indicatorSize);
         stream.setNonStrokingColor(Color.GRAY);
         stream.newLineAt(ctx.getLeft(), bottomY);
+        stream.setFont(font, indicatorSize);
         stream.showText("…");
     }
 
