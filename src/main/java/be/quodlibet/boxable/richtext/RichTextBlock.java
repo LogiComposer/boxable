@@ -439,6 +439,16 @@ public final class RichTextBlock {
             if (blockWidth <= 0 || blockHeight <= 0) {
                 throw new IllegalStateException("Block width and height must be positive");
             }
+            if (2 * blockPadding >= blockWidth) {
+                throw new IllegalStateException(
+                        "Block padding (" + blockPadding + ") is too large: " +
+                        "2 * padding must be less than block width (" + blockWidth + ")");
+            }
+            if (2 * blockPadding >= blockHeight) {
+                throw new IllegalStateException(
+                        "Block padding (" + blockPadding + ") is too large: " +
+                        "2 * padding must be less than block height (" + blockHeight + ")");
+            }
             return new RichTextBlock(this);
         }
     }

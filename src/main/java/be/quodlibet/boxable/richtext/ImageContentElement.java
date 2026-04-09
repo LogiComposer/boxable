@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -250,7 +251,7 @@ public final class ImageContentElement implements ContentElement {
                 throw new IOException("Unsupported or unreadable image format from Base64 string");
             }
             Builder builder = new Builder(img);
-            builder.cacheKey = "base64-" + base64.hashCode();
+            builder.cacheKey = "base64-" + DigestUtils.sha256Hex(rawBase64.getBytes(StandardCharsets.UTF_8));
             return builder;
         }
 

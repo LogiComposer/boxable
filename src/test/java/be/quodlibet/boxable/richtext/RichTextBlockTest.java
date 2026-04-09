@@ -15,6 +15,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -46,7 +48,7 @@ public class RichTextBlockTest {
     }
 
     @Test
-    public void testFullRichTextBlockRendering() throws IOException {
+    public void testFullRichTextBlockRendering() throws IOException, URISyntaxException {
         try (PDDocument doc = new PDDocument()) {
             PDRectangle landscape = new PDRectangle(
                     PDRectangle.LETTER.getHeight(), PDRectangle.LETTER.getWidth());
@@ -142,7 +144,7 @@ public class RichTextBlockTest {
         }
     }
 
-    private RichTextBlock buildMainBlock() throws IOException {
+    private RichTextBlock buildMainBlock() throws IOException, URISyntaxException {
         RichTextLine paragraph = new RichTextLine(Arrays.asList(
                 new RichTextSegment("Revenue grew by ", EnumSet.noneOf(TextStyle.class), 10f),
                 new RichTextSegment("25%", EnumSet.of(TextStyle.BOLD), 10f),
@@ -183,8 +185,8 @@ public class RichTextBlockTest {
                         ListType.NONE, 0));
 
         // Load JPG image from file
-        File jpgFile = new File(
-                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
+        File jpgFile = Paths.get(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toFile();
 
         // Load PNG image from InputStream (ensure it is closed via try-with-resources)
         try (InputStream pngStream = Objects.requireNonNull(
@@ -269,11 +271,11 @@ public class RichTextBlockTest {
     }
 
     @Test
-    public void testInlineImagesWithText() throws IOException {
-        File pngFile = new File(
-                Objects.requireNonNull(RichTextBlockTest.class.getResource("/150dpi.png")).getFile());
-        File jpgFile = new File(
-                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
+    public void testInlineImagesWithText() throws IOException, URISyntaxException {
+        File pngFile = Paths.get(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/150dpi.png")).toURI()).toFile();
+        File jpgFile = Paths.get(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toFile();
 
         InlineImageSegment pngInline = InlineImageSegment.fromFile(pngFile, 36, 14);
         InlineImageSegment jpgInline = InlineImageSegment.fromFile(jpgFile, 36, 14);
@@ -1056,7 +1058,7 @@ public class RichTextBlockTest {
      * block immediately below the previous one.
      */
     @Test
-    public void testChainedBlocksUsingReturnedYPosition() throws IOException {
+    public void testChainedBlocksUsingReturnedYPosition() throws IOException, URISyntaxException {
         try (PDDocument doc = new PDDocument()) {
             PDRectangle pageSize = PDRectangle.A4;
             PDPage page = new PDPage(pageSize);
@@ -1148,8 +1150,8 @@ public class RichTextBlockTest {
                 currentTopDownY = pageHeight - pdfY2 + blockGap;
 
                 // ── Block 3: Conclusion (centre-aligned, no header, with inline image) ──
-                File inlineImgFile = new File(
-                        Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).getFile());
+                File inlineImgFile = Paths.get(
+                        Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toFile();
                 InlineImageSegment inlineImg = InlineImageSegment.fromFile(inlineImgFile, 48, 48);
 
                 RichTextLine conclusionLine = new RichTextLine(Arrays.asList(

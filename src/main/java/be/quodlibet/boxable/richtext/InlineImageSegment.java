@@ -6,6 +6,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -137,7 +138,7 @@ public final class InlineImageSegment implements LineElement {
             throw new IOException("Unsupported or unreadable image from Base64 string");
         }
         return new InlineImageSegment(img,
-                "inline-b64-" + base64.hashCode(),
+                "inline-b64-" + DigestUtils.sha256Hex(raw.getBytes(StandardCharsets.UTF_8)),
                 widthPt, heightPt, 1.0f);
     }
 
