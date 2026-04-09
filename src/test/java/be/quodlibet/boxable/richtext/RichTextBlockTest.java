@@ -185,8 +185,8 @@ public class RichTextBlockTest {
                         ListType.NONE, 0));
 
         // Load JPG image from file
-        File jpgFile = new File(
-                Paths.get(Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toString());
+        File jpgFile = Paths.get(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toFile();
 
         // Load PNG image from InputStream (ensure it is closed via try-with-resources)
         try (InputStream pngStream = Objects.requireNonNull(
@@ -272,10 +272,10 @@ public class RichTextBlockTest {
 
     @Test
     public void testInlineImagesWithText() throws IOException, URISyntaxException {
-        File pngFile = new File(
-                Paths.get(Objects.requireNonNull(RichTextBlockTest.class.getResource("/150dpi.png")).toURI()).toString());
-        File jpgFile = new File(
-                Paths.get(Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toString());
+        File pngFile = Paths.get(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/150dpi.png")).toURI()).toFile();
+        File jpgFile = Paths.get(
+                Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toFile();
 
         InlineImageSegment pngInline = InlineImageSegment.fromFile(pngFile, 36, 14);
         InlineImageSegment jpgInline = InlineImageSegment.fromFile(jpgFile, 36, 14);
@@ -1150,8 +1150,8 @@ public class RichTextBlockTest {
                 currentTopDownY = pageHeight - pdfY2 + blockGap;
 
                 // ── Block 3: Conclusion (centre-aligned, no header, with inline image) ──
-                File inlineImgFile = new File(
-                        Paths.get(Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toString());
+                File inlineImgFile = Paths.get(
+                        Objects.requireNonNull(RichTextBlockTest.class.getResource("/app_development.jpg")).toURI()).toFile();
                 InlineImageSegment inlineImg = InlineImageSegment.fromFile(inlineImgFile, 48, 48);
 
                 RichTextLine conclusionLine = new RichTextLine(Arrays.asList(

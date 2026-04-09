@@ -10,8 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -152,24 +150,6 @@ public final class ImageContentElement implements ContentElement {
         }
     }
 
-    /**
-     * Returns the lowercase hex-encoded SHA-256 digest of the given bytes.
-     */
-    private static String sha256Hex(byte[] data) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(data);
-            StringBuilder sb = new StringBuilder(hash.length * 2);
-            for (byte b : hash) {
-                sb.append(String.format("%02x", b & 0xff));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is required by the Java specification; this should never happen
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
-        }
-    }
-
     // ── Builder ──────────────────────────────────────────────────────────
 
     /**
@@ -271,7 +251,7 @@ public final class ImageContentElement implements ContentElement {
                 throw new IOException("Unsupported or unreadable image format from Base64 string");
             }
             Builder builder = new Builder(img);
-            builder.cacheKey = "base64-" + sha256Hex(rawBase64.getBytes(StandardCharsets.UTF_8));
+            builder.cacheKey = "base64-" + DigestUtils.sha256Hex(rawBase64.getBytes(StandardCharsets.UTF_8));
             return builder;
         }
 
