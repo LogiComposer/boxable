@@ -22,7 +22,7 @@ import java.util.Objects;
  * encoding is deferred to render time and cached via {@link ImageCache}.
  * </p>
  *
- * <h3>Usage</h3>
+ * <h2>Usage</h2>
  * <pre>{@code
  * // Inline image between two text segments
  * RichTextLine line = new RichTextLine(Arrays.asList(
@@ -86,11 +86,10 @@ public final class InlineImageSegment implements LineElement {
 
     /**
      * Creates an inline image from an {@link InputStream} (PNG, JPEG, etc.).
-     *
-     * @apiNote The caller is responsible for closing the stream after construction.
+     * <p><b>API Note:</b> The caller is responsible for closing the stream after construction.
      *          This method fully reads the stream into a {@link BufferedImage}
      *          but does not close it, following the standard Java convention that
-     *          the opener of a resource is responsible for its lifecycle.
+     *          the opener of a resource is responsible for its lifecycle.</p>
      *
      * @param inputStream the image data stream
      * @param widthPt     display width in points

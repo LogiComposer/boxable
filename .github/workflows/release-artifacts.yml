@@ -1,0 +1,60 @@
+name: Release Artifacts
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-push:
+    if: github.event.release.target_commitish == 'master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Derive branch name from release tag
+        id: branch
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          BRANCH="release/${TAG}"
+          echo "name=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Derived branch: ${BRANCH}"
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Build JAR with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Create or update release branch and commit artifacts
+        run: |
+          BRANCH="${{ steps.branch.outputs.name }}"
+          TAG="${{ github.event.release.tag_name }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create (or reset) the release branch from the current tag
+          git checkout -B "$BRANCH"
+
+          # Verify JARs were produced by the build
+          if ! ls target/*.jar 1>/dev/null 2>&1; then
+            echo "::error::No JAR files found in target/ after build"
+            exit 1
+          fi
+
+          # Stage built JARs (force-add to override .gitignore)
+          git add -f target/*.jar
+
+          git commit -m "Add build artifacts for ${TAG}"
+
+      - name: Push release branch
+        run: git push --force-with-lease origin "${{ steps.branch.outputs.name }}"

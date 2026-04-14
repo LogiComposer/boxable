@@ -21,7 +21,7 @@ import java.util.List;
  * A bounded rich-text area that positions mixed content (styled text, images,
  * lists) within a fixed rectangle on the page.
  *
- * <h3>Usage</h3>
+ * <h2>Usage</h2>
  * <pre>{@code
  * RichTextBlock block = RichTextBlock.builder()
  *         .at(100, 80)
@@ -38,7 +38,7 @@ import java.util.List;
  * // position the next element below this block.
  * }</pre>
  *
- * <h3>Design</h3>
+ * <h2>Design</h2>
  * <ul>
  *   <li><strong>Builder pattern</strong> — fluent, readable construction.</li>
  *   <li><strong>Composite</strong> — content elements are polymorphic.</li>
