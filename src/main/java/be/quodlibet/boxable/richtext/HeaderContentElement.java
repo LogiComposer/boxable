@@ -22,7 +22,7 @@ import java.util.List;
  * within a single block.
  * </p>
  *
- * <h3>Rendering behaviour</h3>
+ * <h2>Rendering behaviour</h2>
  * <ul>
  *   <li>Text is rendered in <strong>bold</strong> at the size specified by
  *       the {@link TextType} (or overridden via the builder).</li>
@@ -32,7 +32,7 @@ import java.util.List;
  *   <li>Extra vertical spacing is added after the heading.</li>
  * </ul>
  *
- * <h3>Usage</h3>
+ * <h2>Usage</h2>
  * <pre>{@code
  * ContentElement h1 = new HeaderContentElement.Builder("Chapter One", TextType.HEADER1)
  *         .fontFamily(FontUtils.getFontSet(Standard14FontFamily.TIMES_ROMAN))

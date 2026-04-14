@@ -200,11 +200,10 @@ public final class ImageContentElement implements ContentElement {
         /**
         * Creates a Builder from an {@link InputStream} (supports any format that
         * {@link ImageIO} can read, including PNG and JPEG/JPG).
-        *
-        * @apiNote The caller is responsible for closing the stream after construction.
+        * <p><b>API Note:</b> The caller is responsible for closing the stream after construction.
         *          This constructor fully reads the stream into a {@link BufferedImage}
         *          but does not close it, following the standard Java convention that
-        *          the opener of a resource is responsible for its lifecycle.
+        *          the opener of a resource is responsible for its lifecycle.</p>
         *
         * @param inputStream the input stream containing image data
         * @throws IOException if reading the stream fails
