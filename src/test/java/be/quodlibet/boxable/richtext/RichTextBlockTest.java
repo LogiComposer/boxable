@@ -10,6 +10,7 @@ import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -1469,8 +1470,10 @@ public class RichTextBlockTest {
 
         assertEquals("Should have 2 content elements", 2, block.getContent().size());
 
-        float finalY = block.renderOnNewPage(new PDDocument(), PDRectangle.A4, false);
-        assertTrue("render() should return a positive final Y", finalY > 0);
+        try (PDDocument doc = new PDDocument()) {
+            float finalY = block.renderOnNewPage(doc, PDRectangle.A4, false);
+            assertTrue("render() should return a positive final Y", finalY > 0);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -2291,7 +2294,7 @@ public class RichTextBlockTest {
 
         assertTrue("HEADER1 should be bold", TextType.HEADER1.isBold());
         assertTrue("HEADER2 should be bold", TextType.HEADER2.isBold());
-        assertTrue("BODY should not be bold", !TextType.BODY.isBold());
+        assertFalse("BODY should not be bold", TextType.BODY.isBold());
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -2418,8 +2421,8 @@ public class RichTextBlockTest {
         RichTextSegment bold = new RichTextSegment("Bold",
                 EnumSet.of(TextStyle.BOLD), 12f, Color.RED);
         assertTrue("Should be bold", bold.isBold());
-        assertTrue("Should not be italic", !bold.isItalic());
-        assertTrue("Should not be underline", !bold.isUnderline());
+        assertFalse("Should not be italic", bold.isItalic());
+        assertFalse("Should not be underline", bold.isUnderline());
         assertEquals("Text", "Bold", bold.getText());
         assertEquals("Font size", 12f, bold.getFontSize(), 0.001f);
         assertEquals("Color", Color.RED, bold.getColor());
