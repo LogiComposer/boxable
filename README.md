@@ -42,18 +42,18 @@ Boxable is a powerful and flexible Java library for creating professional tables
 <dependency>
     <groupId>com.logi.composer</groupId>
     <artifactId>boxable</artifactId>
-    <version>1.7.7</version>
+    <version>1.8.0</version>
 </dependency>
 ```
 
 ### Gradle
 ```gradle
-implementation 'com.logi.composer:boxable:1.7.7'
+implementation 'com.logi.composer:boxable:1.8.0'
 ```
 
 ### SBT
 ```scala
-libraryDependencies += "com.logi.composer" % "boxable" % "1.7.7"
+libraryDependencies += "com.logi.composer" % "boxable" % "1.8.0"
 ```
 
 ### Required Dependencies
