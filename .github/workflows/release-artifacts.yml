@@ -44,10 +44,16 @@ jobs:
           # Create (or reset) the release branch from the current tag
           git checkout -B "$BRANCH"
 
+          # Verify JARs were produced by the build
+          if ! ls target/*.jar 1>/dev/null 2>&1; then
+            echo "::error::No JAR files found in target/ after build"
+            exit 1
+          fi
+
           # Stage built JARs (force-add to override .gitignore)
           git add -f target/*.jar
 
           git commit -m "Add build artifacts for ${TAG}"
 
       - name: Push release branch
-        run: git push --force origin "${{ steps.branch.outputs.name }}"
+        run: git push --force-with-lease origin "${{ steps.branch.outputs.name }}"
