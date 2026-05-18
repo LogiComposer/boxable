@@ -186,8 +186,9 @@ public final class TextContentElement implements ContentElement {
                 String remaining = segment.getText();
 
                 while (!remaining.isEmpty()) {
-                    float availableWidth = maxWidth - currentLineWidth;
-                    float textWidth = WordWrapUtil.textWidth(remaining, font, fontSize);
+                    // floor/ceil: round available space down and text width up to avoid sub-pixel over-placement.
+                    float availableWidth = (float) Math.floor(maxWidth - currentLineWidth);
+                    float textWidth = (float) Math.ceil(WordWrapUtil.textWidth(remaining, font, fontSize));
 
                     if (textWidth <= availableWidth) {
                         // Entire remaining text fits on the current line
@@ -241,23 +242,40 @@ public final class TextContentElement implements ContentElement {
      */
     private String[] splitAtWidth(String text, PDFont font, float fontSize,
                                   float maxWidth) throws IOException {
-        String[] words = text.split("(?<=\\s)");
-        StringBuilder fitting = new StringBuilder();
+        // floor: guard against sub-pixel float noise in font metrics.
+        float effectiveMax = (float) Math.floor(maxWidth);
 
-        for (String word : words) {
-            String candidate = fitting + word;
-            float width = WordWrapUtil.textWidth(candidate.trim(), font, fontSize);
-            if (width > maxWidth) {
+        // Tokenise into alternating word-runs and whitespace-runs so each token
+        // is measured independently and spaces are treated as break points.
+        List<String> tokens = new ArrayList<>();
+        int i = 0;
+        while (i < text.length()) {
+            int start = i;
+            if (Character.isWhitespace(text.charAt(i))) {
+                while (i < text.length() && Character.isWhitespace(text.charAt(i))) i++;
+            } else {
+                while (i < text.length() && !Character.isWhitespace(text.charAt(i))) i++;
+            }
+            tokens.add(text.substring(start, i));
+        }
+
+        StringBuilder fitting = new StringBuilder();
+        for (String token : tokens) {
+            String candidate = fitting.toString() + token;
+            float candidateWidth = (float) Math.ceil(WordWrapUtil.textWidth(candidate, font, fontSize));
+            if (candidateWidth > effectiveMax) {
                 if (fitting.length() > 0) {
-                    // We have content that fits — return it
-                    String remainder = text.substring(fitting.length());
-                    return new String[]{fitting.toString().trim(), remainder.trim()};
+                    // Strip trailing spaces from the fitting part only; remainder is taken
+                    // verbatim so its leading space is preserved
+                    String fittingText = stripTrailing(fitting.toString());
+                    String remainder = text.substring(fittingText.length());
+                    return new String[]{fittingText, remainder};
                 } else {
-                    // Not even the first word fits — signal with empty first part
+                    // Not even the first token fits — signal with empty first part
                     return new String[]{"", text};
                 }
             }
-            fitting.append(word);
+            fitting.append(token);
         }
         // Everything fits
         return new String[]{text, ""};
@@ -272,15 +290,29 @@ public final class TextContentElement implements ContentElement {
      */
     private String[] forceBreak(String text, PDFont font, float fontSize,
                                 float maxWidth) throws IOException {
-        for (int i = 1; i < text.length(); i++) {
+        // floor/ceil: same sub-pixel guard as in splitAtWidth.
+        float effectiveMax = (float) Math.floor(maxWidth);
+        // i <= text.length() (not <) so the last character is tested and overflow
+        // at the exact boundary is caught rather than falling through to "place it all".
+        for (int i = 1; i <= text.length(); i++) {
             String candidate = text.substring(0, i);
-            float width = WordWrapUtil.textWidth(candidate, font, fontSize);
-            if (width > maxWidth && i > 1) {
-                return new String[]{text.substring(0, i - 1), text.substring(i - 1).trim()};
+            float width = (float) Math.ceil(WordWrapUtil.textWidth(candidate, font, fontSize));
+            if (width > effectiveMax && i > 1) {
+                // remainder taken verbatim (no trim) to preserve boundary characters.
+                return new String[]{text.substring(0, i - 1), text.substring(i - 1)};
             }
         }
         // The entire text fits or is a single char — place it all
         return new String[]{text, ""};
+    }
+
+    /** Java-8 equivalent of {@code String.stripTrailing()} (added in Java 11). */
+    private static String stripTrailing(String s) {
+        int right = s.length() - 1;
+        while (right >= 0 && Character.isWhitespace(s.charAt(right))) {
+            right--;
+        }
+        return right == s.length() - 1 ? s : s.substring(0, right + 1);
     }
 }
 
