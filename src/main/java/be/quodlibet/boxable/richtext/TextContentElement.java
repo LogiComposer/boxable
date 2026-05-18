@@ -186,11 +186,7 @@ public final class TextContentElement implements ContentElement {
                 String remaining = segment.getText();
 
                 while (!remaining.isEmpty()) {
-                    // floor/ceil applied to width values to prevent
-                    // floating-point rounding from placing text that is one sub-pixel
-                    // over the limit.  Previously both values were raw floats, which
-                    // caused border-line tokens to appear to "fit" on a line even
-                    // when they were fractionally wider than availableWidth.
+                    // floor/ceil: round available space down and text width up to avoid sub-pixel over-placement.
                     float availableWidth = (float) Math.floor(maxWidth - currentLineWidth);
                     float textWidth = (float) Math.ceil(WordWrapUtil.textWidth(remaining, font, fontSize));
 
@@ -246,17 +242,11 @@ public final class TextContentElement implements ContentElement {
      */
     private String[] splitAtWidth(String text, PDFont font, float fontSize,
                                   float maxWidth) throws IOException {
-        // floor applied so we never place text that "barely fits"
-        // due to floating-point precision in font metrics.  Previously the raw
-        // maxWidth float was used directly, causing occasional over-placement.
+        // floor: guard against sub-pixel float noise in font metrics.
         float effectiveMax = (float) Math.floor(maxWidth);
 
-        // replaced text.split("(?<=\\s)") with an explicit
-        // alternating-token scanner.  The old regex produced tokens that each
-        // ended with a trailing whitespace character, which meant whitespace was
-        // counted as part of the preceding word.  The new scanner produces
-        // separate tokens for word-runs and whitespace-runs, so the width check
-        // is done against the real printable characters only.
+        // Tokenise into alternating word-runs and whitespace-runs so each token
+        // is measured independently and spaces are treated as break points.
         List<String> tokens = new ArrayList<>();
         int i = 0;
         while (i < text.length()) {
@@ -275,17 +265,8 @@ public final class TextContentElement implements ContentElement {
             float candidateWidth = (float) Math.ceil(WordWrapUtil.textWidth(candidate, font, fontSize));
             if (candidateWidth > effectiveMax) {
                 if (fitting.length() > 0) {
-                    // Previously this was:
-                    //   return new String[]{fitting.toString().trim(), remainder.trim()};
-                    // The double trim() stripped (a) trailing spaces from the fitting
-                    // part (harmless) AND (b) the leading space from the remainder,
-                    // so the first character of every continuation line was silently
-                    // dropped — causing "Alpha, Beta" to become "Alpha,Beta" in the
-                    // extracted PDF text.
-                    // Now only trailing whitespace is removed from the fitting part
-                    // (stripTrailing() — Java 8 compatible, see helper below),
-                    // and the remainder is taken verbatim via substring so its leading
-                    // spaces are fully preserved.
+                    // Strip trailing spaces from the fitting part only; remainder is taken
+                    // verbatim so its leading space is preserved
                     String fittingText = stripTrailing(fitting.toString());
                     String remainder = text.substring(fittingText.length());
                     return new String[]{fittingText, remainder};
@@ -309,25 +290,15 @@ public final class TextContentElement implements ContentElement {
      */
     private String[] forceBreak(String text, PDFont font, float fontSize,
                                 float maxWidth) throws IOException {
-        // floor/ceil applied for the same floating-point
-        // precision reason as in splitAtWidth.
+        // floor/ceil: same sub-pixel guard as in splitAtWidth.
         float effectiveMax = (float) Math.floor(maxWidth);
-        // loop bound changed from  i < text.length()
-        // to  i <= text.length()
-        // The old bound meant the last character of the string was never tested:
-        // when exactly (n) characters fit and the (n+1)-th caused overflow, the
-        // loop exited without detecting the overflow and fell through to the
-        // "place it all" return — rendering all (n+1) characters on one line past
-        // the right margin.  The fix lets the loop test the full-string case so
-        // the overflow is caught and the string is properly split.
+        // i <= text.length() (not <) so the last character is tested and overflow
+        // at the exact boundary is caught rather than falling through to "place it all".
         for (int i = 1; i <= text.length(); i++) {
             String candidate = text.substring(0, i);
             float width = (float) Math.ceil(WordWrapUtil.textWidth(candidate, font, fontSize));
             if (width > effectiveMax && i > 1) {
-                // Removed .trim() from the remainder.
-                // Previously: text.substring(i - 1).trim() discarded the
-                // character at position (i-1) when it was whitespace, effectively
-                // orphaning boundary characters onto the next line.
+                // remainder taken verbatim (no trim) to preserve boundary characters.
                 return new String[]{text.substring(0, i - 1), text.substring(i - 1)};
             }
         }
@@ -335,25 +306,12 @@ public final class TextContentElement implements ContentElement {
         return new String[]{text, ""};
     }
 
-    /**
-     * Removes trailing whitespace from {@code s}.
-     *
-     * <p>This is the Java-8–compatible equivalent of {@code String.stripTrailing()}
-     * introduced in Java 11.  The logic mirrors the JDK 11 implementation in
-     * {@code StringLatin1.stripTrailing}: scan from the right while
-     * {@link Character#isWhitespace(char)} is true, then return the prefix up
-     * to the last non-whitespace character.
-     *
-     * @param s the string to process; must not be {@code null}
-     * @return {@code s} with all trailing whitespace removed, or an empty
-     *         string if {@code s} consists entirely of whitespace
-     */
+    /** Java-8 equivalent of {@code String.stripTrailing()} (added in Java 11). */
     private static String stripTrailing(String s) {
         int right = s.length() - 1;
         while (right >= 0 && Character.isWhitespace(s.charAt(right))) {
             right--;
         }
-        // right == s.length() - 1 means no trailing whitespace was found
         return right == s.length() - 1 ? s : s.substring(0, right + 1);
     }
 }
