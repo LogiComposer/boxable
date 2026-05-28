@@ -70,8 +70,10 @@ public final class TextContentElement implements ContentElement {
     // ── Internals ────────────────────────────────────────────────────────
 
     private float estimateLineHeight(RichTextLine line, float availableWidth) throws IOException {
-        float fontSize = line.getMaxFontSize();
-        float lineHeight = fontSize * LINE_SPACING;
+        // Inter-line gap is proportional to text size, not image size.
+        // For text-only lines this equals getMaxFontSize() * LINE_SPACING (unchanged).
+        // For lines with tall images the gap stays at text size * 0.4 instead of image height * 0.4.
+        float lineHeight = line.getMaxFontSize() + line.getTextMaxFontSize() * (LINE_SPACING - 1);
 
         float contentWidth = availableWidth;
         if (line.getListType() == ListType.BULLETED || line.getListType() == ListType.NUMBERED) {
@@ -83,8 +85,12 @@ public final class TextContentElement implements ContentElement {
     }
 
     private void renderLine(RenderContext ctx, RichTextLine line) throws IOException {
-        float fontSize = line.getMaxFontSize();
-        float lineHeight = fontSize * LINE_SPACING;
+        // lineHeight: image/content height + text-proportional inter-line gap.
+        // Using getTextMaxFontSize() for the gap factor keeps spacing consistent regardless
+        // of image height, while getMaxFontSize() ensures the full image fits in the line.
+        float lineHeight = line.getMaxFontSize() + line.getTextMaxFontSize() * (LINE_SPACING - 1);
+        // fontSize is used only for the bullet/number prefix glyph (text size only).
+        float fontSize = line.getTextMaxFontSize();
         float contentStartX = ctx.getLeft();
         float contentWidth = ctx.getInnerWidth();
 
