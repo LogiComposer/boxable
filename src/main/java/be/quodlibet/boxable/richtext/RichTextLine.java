@@ -80,4 +80,35 @@ public final class RichTextLine {
         }
         return max;
     }
+
+    /**
+     * Returns the maximum font size across <em>text-only</em> elements
+     * ({@link RichTextSegment}s), ignoring inline images.
+     * Used for sizing the bullet/number prefix glyph so that it matches
+     * the body text rather than being inflated by a large inline image.
+     * Falls back to {@link #getMaxFontSize()} when there are no text segments.
+     */
+    public float getTextMaxFontSize() {
+        float max = 6f; // minimum floor
+        for (LineElement el : elements) {
+            if (el instanceof RichTextSegment) {
+                float h = el.getHeight();
+                if (h > max) {
+                    max = h;
+                }
+            }
+        }
+        // If there are no text segments, fall back to the global max
+        // so that non-text list items still get a reasonable prefix size.
+        boolean hasTextSegment = false;
+        for (LineElement el : elements) {
+            if (el instanceof RichTextSegment) {
+                hasTextSegment = true;
+                break;
+            }
+        }
+        return hasTextSegment ? max : getMaxFontSize();
+    }
+
 }
+
